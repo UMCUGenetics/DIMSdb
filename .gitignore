@@ -3,6 +3,9 @@ __pycache__
 .idea
 *.xml
 extra/input/*
+extra/output.log
+extra/verwerkt/*
+extra/DIMSdb*
 .DS_Store
 */.DS_Store
 
