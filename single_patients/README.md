@@ -4,6 +4,29 @@ database for Direct Infusion Mass Spectrometry pipeline
 # Single patients
 Deze scripts worden uiteindelijk vervangen door de DIMS database. De webapplicatie en de bijbehorende database bevat alle data van eerdere runs, waardoor het apart verzamelen van data van 1 of meerdere patienten overbodig wordt. Voor meer informatie, zie documentatie over DIMSdb.
 
+Het Single Patients script wordt gebruikt om informatie van de DIMS pipeline te verzamelen van individuele patiënten. Deze geven meerdere dry bloodspots (DBS) af (of ander patiëntmateriaal) en worden op verschillende momenten opgewerkt, gemeten en geanalyseerd. Daardoor is de betreffende informatie verspreid over verschillende DIMS analyses. Het single patients script voorziet in 3 doelen.
+1.	Verzamelen van de correcte waarden (HMDB code/naam/descr, intensiteiten en Zscores) van de betreffende patiënt uit de eind resultaten Excel van de DIMS pipeline (<projectnaam>.xlsx). Dit wordt verzameld in de eerste sheet “All”
+2.	Op basis van tabel 1 bepalen welke HMDB codes verhoogd of verlaagd zijn op basis van zowel het aantal gemeten DBS, Zscore en modus (positive/negative). Dit wordt verzameld in de tweede en derde sheet “Elevated” en “Decreased”.
+3.	Het genereren van Adduct plots per HMDB en per run, om weer te geven in de Single Patients resultaten sheets (Elevated en Decreased).
+
+TABEL 1
+| DBS | Metaboliet verhoogd  | Metaboliet verlaagd |
+| --- | ------------- | ------------- |
+| 1 DBS | > 2.00  | < -1.50  |
+| 2 DBS | > 1.75  | < -1.25  |
+| 3 DBS | > 1.00  | < -0.80  |
+| 4 DBS | 3 DBS > 1.00  | 3 DBS < -0.80  |
+| 5 DBS | 4 DBS > 1.00  | 4 DBS < -0.80  |
+
+De software Single Patients bestaat uit 3 scripts (+supportive scripts uit de DIMS pipeline).
+-	CreateBoxPlot.R
+Deze maakt de adductplots map op basis van de “bioinformatics” folder van de DIMS pipeline run.
+-	CreateIndividualSPMonsters.R
+Dit script maakt de verzamelde file met de 3 sheets. Het zoekt de juiste runs op basis van de “SP_DBS” file, waar alle patienten vernoemd staan. Hierin is ook de informatie aanwezig over hoeveel DBS er beschikbaar zijn en in welke DIMS pipeline runs deze geanalyseerd zijn.
+-	Run_all_patients.R
+Dit script maakt het mogelijk meerdere patiënten tegelijk te analyseren.
+
+
 # HOW TO
 1.	Clone het script lokaal
 2.	Ga naar de single_patients folder
