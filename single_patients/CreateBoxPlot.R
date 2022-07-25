@@ -10,7 +10,7 @@
 # MAC COMPATIBLE, load in functions to be used ----------------------------
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-setwd("/Users/fdegruyt/extra/single_patients/")
+setwd("<path_to_local>/single_patients/")
 source("Supportive_scripts/getPatients.R")
 source("Supportive_scripts/initialize.R")
 source("Supportive_scripts/plotBoxPlot.R")
@@ -50,8 +50,8 @@ outputfolder <- as.character(read.table("Directories_to_read/boxplots_output.txt
 
 
 for(num in 1:length(project_numbers)){
-  #all_projects[num] <- paste0(project_numbers[num], "SinglePatients_", as.numeric(project_numbers[num]),"b")
-  all_projects[num] <- paste0("SinglePatients_", as.numeric(project_numbers[num]))
+  #all_projects[num] <- paste0(project_numbers[num], "SP", as.numeric(project_numbers[num]),"b")
+  all_projects[num] <- paste0("SP", as.numeric(project_numbers[num]))
   while(!dir.exists(paste0(working_directory, all_projects[num]))){
     
     cat("project '", all_projects[num], "' does not exist (yet) in this directory: ", working_directory,"\n")
@@ -68,7 +68,7 @@ for(num in 1:length(project_numbers)){
       project_numbers[num] <- user_number
       rm(user_number)
     }
-    all_projects[num] <- paste0("SinglePatients_", project_numbers[num])
+    all_projects[num] <- paste0("SP", project_numbers[num])
   }
 }
 
