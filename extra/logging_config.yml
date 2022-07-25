@@ -15,7 +15,7 @@ handlers:
     class: logging.FileHandler
     level: DEBUG
     formatter: standard
-    filename: /Users/fdegruyt/github_scripts/DIMSdb_main/DIMSdb/extra/output.log
+    filename: /path/to/DIMSdb/extra/output.log
 root:
   level: DEBUG
   handlers: [console, file]
