@@ -1,15 +1,10 @@
 from fastapi import FastAPI
 from sqlmodel import Session, select
 
-from .database import engine, create_db_and_tables
+from .database import engine
 from .models import HMDB
 
 app = FastAPI()
-
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
-
 
 @app.get("/")
 def read_root():
