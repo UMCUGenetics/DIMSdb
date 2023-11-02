@@ -1,2 +1,2 @@
 # DIMSdb
-database for Direct Infusion Mass Spectrometry pipeline 
+Database for Direct Infusion Mass Spectrometry pipeline results.
