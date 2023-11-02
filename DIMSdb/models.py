@@ -10,7 +10,7 @@ class DIMS_run(SQLModel, table=True):
     num_replicates: None
 
 
-class Dims_result(SQLModel, table=True):
+class DIMS_results(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     run_name: str = Field(max_length=50)
     hmdb_id: Optional[str] = Field(max_length=11)
