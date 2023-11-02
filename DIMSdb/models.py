@@ -29,7 +29,6 @@ class DIMSResults(SQLModel, table=True):
     run: "DIMSRun" = Relationship(back_populates='dims_results')
 
 
-
 class HMDB(SQLModel, table=True):
     id: str = Field(primary_key=True, max_length=11)
     name: str
@@ -46,6 +45,7 @@ class Sample(SQLModel, table=True):
     patient_id: str = Field(foreign_key='patient.intermediate_id')
     patient: "Patient" = Relationship(back_populates='samples')
     dims_results: List["DIMSResults"] = Relationship(back_populates='sample')
+
 
 class Patient(SQLModel, table=True):
     intermediate_id: str = Field(primary_key=True)
