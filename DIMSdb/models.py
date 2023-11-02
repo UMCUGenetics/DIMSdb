@@ -1,5 +1,13 @@
+from datetime import date
 from typing import Optional
 from sqlmodel import Field, SQLModel
+
+
+class DIMS_run(SQLModel, table=True):
+    name: str = Field(primary_key=True)
+    email: str = None
+    date: date = None
+    num_replicates: None
 
 
 class Dims_result(SQLModel, table=True):
@@ -17,6 +25,11 @@ class HMDB(SQLModel, table=True):
     name: str
     description: str
     MZ: float
+
+
+class Sample(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    type: str = None
 
 
 class Patient(SQLModel, table=True):
