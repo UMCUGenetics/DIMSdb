@@ -1,9 +1,9 @@
-# from sqlmodel import Field, SQLModel
-from pydantic import BaseModel
-from typing import Union
+from typing import Optional
+from sqlmodel import Field, SQLModel
 
 
-class Item(BaseModel):
+class HMDB(SQLModel, table=True):
+    id: str = Field(primary_key=True)
     name: str
-    price: float
-    is_offer: Union[bool, None] = None
+    description: str
+    MZ: float
