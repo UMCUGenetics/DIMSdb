@@ -1,5 +1,5 @@
 from sqlmodel import Session, SQLModel, create_engine
-from .models import Sample, Patient
+from .models import DIMSRun, DIMSResults, Patient, Sample
 import pathlib
 import configparser
 
@@ -27,5 +27,33 @@ def create_db_and_tables():
         s3 = Sample(id="p2.1", type="plasma", patient=p2)
         s4 = Sample(id="p2.2", type="plasma", patient=p2)
 
-        session.add_all([p1, s1, s2, p2, s3, s4])
+        d1 = DIMSRun(
+            name="RES_PL_20231002_plasma",
+            email="account@umcutrecht.nl",
+            date=2023-10-2,
+            num_replicates=1
+        )
+
+        r1 = DIMSResults(
+            id=1,
+            run_name="RES_PL_20231002_plasma",
+            polarity=False,
+            m_z=76.0250816451157,
+            intensity=5017.18485987616,
+            z_score=1.34410883293296,
+            hmdb_id="HMDB100000",
+            sample_id="p2.1"
+        )
+        r2 = DIMSResults(
+            id=2,
+            run_name="RES_PL_20231002_plasma",
+            polarity=False,
+            m_z=76.0250816451157,
+            intensity=5017.18485987616,
+            z_score=1.34410883293296,
+            hmdb_id="HMDB100000",
+            sample_id="p2.2"
+        )
+
+        session.add_all([p1, s1, s2, p2, s3, s4, d1, r1, r2])
         session.commit()
