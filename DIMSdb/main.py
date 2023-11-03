@@ -64,5 +64,5 @@ def get_sample_result(name: str):
 def get_sample_result(name: str, id: str):
     with Session(engine) as session:
         query = select(DIMSResults).where(DIMSResults.run_name == name).where(DIMSResults.sample_id == id)
-        result = session.exec(query).one_or_none
+        result = session.exec(query).one_or_none()
     return result
