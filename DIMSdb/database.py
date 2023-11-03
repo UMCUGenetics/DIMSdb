@@ -35,23 +35,21 @@ def create_db_and_tables():
         )
 
         r1 = DIMSResults(
-            id=1,
+            uuid=1,
             run_name="RES_PL_20231002_plasma",
             polarity=False,
             m_z=76.0250816451157,
             intensity=5017.18485987616,
             z_score=1.34410883293296,
-            hmdb_id="HMDB100000",
             sample_id="p2.1"
         )
         r2 = DIMSResults(
-            id=2,
+            uuid=2,
             run_name="RES_PL_20231002_plasma",
             polarity=False,
             m_z=76.0250816451157,
             intensity=5017.18485987616,
             z_score=1.34410883293296,
-            hmdb_id="HMDB100000",
             sample_id="p2.2"
         )
 
