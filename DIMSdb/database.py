@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlmodel import Session, SQLModel, create_engine
 from .models import DIMSRun, DIMSResults, Patient, Sample
 import pathlib
@@ -30,7 +31,7 @@ def create_db_and_tables():
         d1 = DIMSRun(
             name="RES_PL_20231002_plasma",
             email="account@umcutrecht.nl",
-            date=2023-10-2,
+            date=datetime(2023, 10, 2),
             num_replicates=1
         )
 
