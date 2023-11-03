@@ -68,9 +68,17 @@ def get_patient_samples(id: str):
     return result
 
 
-@app.get("/sample/{id}")
-def get_samples(id: str):
+@app.get("/samples/")
+def get_samples():
     with Session(engine) as session:
         query = select(Sample)
         result = session.exec(query).all()
+    return result
+
+
+@app.get("/samples/{id}")
+def get_sample(id: str):
+    with Session(engine) as session:
+        query = select(Sample).where(Sample.id == id)
+        result = session.exec(query).one_or_none()
     return result
