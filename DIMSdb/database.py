@@ -1,10 +1,17 @@
 from sqlmodel import Session, SQLModel, create_engine
 from .models import Sample, Patient
+import pathlib
+import configparser
 
-sqlite_file_name = "db.sqlite3"  # Todo: Move to config
-sqlite_url = f"sqlite:///{sqlite_file_name}"  # Todo: Move to config
+config = configparser.ConfigParser()
+config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
 
-engine = create_engine(sqlite_url)
+sql_protocol = config.get('database', 'sql_protocol')
+datbase_name_or_url = config.get('database', 'datbase_name_or_url')
+
+sql_url = f'{sql_protocol}{datbase_name_or_url}'
+
+engine = create_engine(sql_url)
 
 
 def create_db_and_tables():
