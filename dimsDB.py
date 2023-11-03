@@ -19,6 +19,7 @@ def import_dims(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.set_defaults(func=lambda args: parser.print_help())
     subparser = parser.add_subparsers()
 
     parser_init = subparser.add_parser("init", help="Initializes database")
