@@ -8,9 +8,9 @@ config = configparser.ConfigParser()
 config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
 
 sql_protocol = config.get('database', 'sql_protocol')
-datbase_name_or_url = config.get('database', 'datbase_name_or_url')
+database_name_or_url = config.get('database', 'database_name_or_url')
 
-sql_url = f'{sql_protocol}{datbase_name_or_url}'
+sql_url = f'{sql_protocol}{database_name_or_url}'
 
 engine = create_engine(sql_url)
 
@@ -36,7 +36,6 @@ def create_db_and_tables():
         )
 
         r1 = DIMSResults(
-            uuid=1,
             run_name="RES_PL_20231002_plasma",
             polarity=False,
             m_z=76.0250816451157,
@@ -45,7 +44,6 @@ def create_db_and_tables():
             sample_id="p2.1"
         )
         r2 = DIMSResults(
-            uuid=2,
             run_name="RES_PL_20231002_plasma",
             polarity=False,
             m_z=76.0250816451157,

@@ -18,10 +18,10 @@ class DIMSResultsHMDBLink(SQLModel, table=True):
 
 
 class DIMSResults(SQLModel, table=True):
-    uuid: int = Field(default=None, primary_key=True)
+    uuid: Optional[int] = Field(default=None, primary_key=True)
     run_name: str = Field(max_length=50)
     polarity: bool = None  # Positive = true, negative = false
-    m_z: float = Field(primary_key=True)
+    m_z: float
     intensity: float = None
     z_score: float = None
 
@@ -35,9 +35,9 @@ class DIMSResults(SQLModel, table=True):
 
 class HMDB(SQLModel, table=True):
     uuid: int = Field(default=None, primary_key=True)
-    hmdb_id: str = Field(primary_key=True, max_length=14)
+    hmdb_id: str = Field(max_length=14)
     name: str
-    description: str
+    description: Optional[str] = None
     MZ: float
 
     dims_results: List["DIMSResults"] = Relationship(back_populates="hmdb", link_model=DIMSResultsHMDBLink)

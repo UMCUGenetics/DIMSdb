@@ -61,17 +61,21 @@ def parse_rdata(file, runname):
 
     # fill Patients and Samples tables
     for sample in samples:
+        print(sample)
         # Patients
         patientobj = Patient()
-        patient = sample.split(".")[0]
+        patient = sample  #.split(".")[0]
         patientobj.intermediate_id = patient
         patientobj.birth_year = 2000
-        list_of_objects.append(patientobj.copy())
+        # list_of_objects.append(patientobj.copy())
+        insert_data([patientobj])
         # Samples
         sampleobj = Sample()
+        sampleobj.id = sample
         sampleobj.patient_id = sample
         sampleobj.type = sample_type
-        list_of_objects.append(sampleobj.copy())
+        insert_data([sampleobj])
+        # list_of_objects.append(sampleobj.copy())
 
     # fill DIMSRun table
     dimsrun = DIMSRun()
@@ -79,7 +83,8 @@ def parse_rdata(file, runname):
     dimsrun.email = "todo@umcutrecht.nl"
     dimsrun.date = date.today()
     dimsrun.num_replicates = 2
-    list_of_objects.append(dimsrun.copy())
+    insert_data([dimsrun])
+    # list_of_objects.append(dimsrun.copy())
 
     # fill DIMSResults table
     dimsresultsobj = []
@@ -95,19 +100,23 @@ def parse_rdata(file, runname):
             dimsresults.intensity = float(row[sample])
             dimsresults.z_score = float(row[zscore_colname])
             dimsresultsobj_perrow.append(dimsresults)
-        dimsresultsobj.append(dimsresultsobj_perrow)
-    list_of_objects.append(dimsresultsobj.copy())
+        dimsresultsobj.extend(dimsresultsobj_perrow)
+    insert_data(dimsresultsobj)
+    # list_of_objects.extend(dimsresultsobj.copy())
 
-    for index,row in merged_df.iterrows():
+    hmdb_objects = []
+    for index, row in merged_df.iterrows():
         if row["HMDB_code"]:
             for HMDB_index, HMDB_code in enumerate(row["HMDB_code"]):
                 if HMDB_code:
-                    hmdb_object = HMDB(hmdb_id= HMDB_code,
-                                       name=row["assi_HMDB"][HMDB_index],
-                                       MZ=float(row["theormz_HMDB"]))
-                    list_of_objects.append(hmdb_object.copy())
-
-    return list_of_objects
+                    hmdb_object = HMDB(
+                        hmdb_id= HMDB_code,
+                        name=row["assi_HMDB"][HMDB_index],
+                        MZ=float(row["theormz_HMDB"])
+                    )
+                    hmdb_objects.append(hmdb_object)
+    insert_data(hmdb_objects)
+    # return list_of_objects
 
 
 def insert_data(list_of_models):
@@ -118,18 +127,18 @@ def insert_data(list_of_models):
 
 def main():
     # Update run_name with folder name of data to be inserted
-    path_name = "/Users/mraves2/Metabolomics/DIMSdb/Input_data/Plasma/RData/"
+    path_name = "/Users/rernst3/Development/WOC_2023/DIMSdb_Rdata/"
     # run_names = [f for f in os.listdir(path_name) if not f.startswith('.')]
-    run_names = list("t")
+    run_names = ["test"]
     for run_name in run_names:
         print(run_name)
         file_neg = path_name + run_name + '/outlist_ident_space_negative.RData'
         print(file_neg)
         file_pos = path_name + run_name + '/outlist_ident_space_positive.RData'
-        objectlist_neg = parse_rdata(file_neg, run_name)
+        parse_rdata(file_neg, run_name)
         # insert into database tables
-        insert_data(objectlist_neg)
-        objectlist_pos = parse_rdata(file_pos, run_name)
+        # insert_data(objectlist_neg)
+        # parse_rdata(file_pos, run_name)
         #insert_data(objectlist_pos)
 
 
