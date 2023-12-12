@@ -21,7 +21,7 @@ class DIMSResults(SQLModel, table=True):
     uuid: Optional[int] = Field(default=None, primary_key=True)
     run_name: str = Field(max_length=50)
     polarity: bool = None  # Positive = true, negative = false
-    m_z: float
+    m_z: float = None
     intensity: float = None
     z_score: float = None
 
@@ -38,7 +38,7 @@ class HMDB(SQLModel, table=True):
     hmdb_id: str = Field(max_length=14)
     name: str
     description: Optional[str] = None
-    MZ: float
+    theor_MZ: float
 
     dims_results: List["DIMSResults"] = Relationship(back_populates="hmdb", link_model=DIMSResultsHMDBLink)
 

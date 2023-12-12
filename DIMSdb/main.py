@@ -47,8 +47,16 @@ def get_sample_result(name: str, id: str):
 @app.get("/hmdbs/{id}")
 def get_hmdb(id: str):
     with Session(engine) as session:
-        query = select(HMDB).where(HMDB.id == id)
+        query = select(HMDB).where(HMDB.hmdb_id == id)
         result = session.exec(query).one_or_none()
+    return result
+
+
+@app.get("/hmdbs/")
+def get_hmdb():
+    with Session(engine) as session:
+        query = select(HMDB)
+        result = session.exec(query).all()
     return result
 
 
