@@ -1,4 +1,5 @@
-from sqlmodel import Session, create_engine, select
+from sqlmodel import Session, create_engine, select, col
+from sqlalchemy import any_
 import configparser
 import pathlib
 # import pyreadr
@@ -10,13 +11,14 @@ import pickle
 from models import *
 # from sqlalchemy.orm import mapper
 # mapper(DIMSResults, dimsresults)
-from datetime import date, time
+from datetime import date, time, datetime
 from math import isnan
 # https://github.com/vnmabus/rdata
 import rdata
 
 config = configparser.ConfigParser()
-config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
+# config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
+config.read('/Users/aluesin2/Documents/DIMSdb/config.ini')
 
 sql_protocol = config.get('database', 'sql_protocol')
 database_name_or_url = config.get('database', 'database_name_or_url')
@@ -60,6 +62,7 @@ def parse_rdata(file, runname):
     sample_ids = [col_name for col_name in merged_df.columns
                 if col_name not in cols_to_remove and "_Zscore" not in col_name]
     # patient_ids = [sample_ids.split('.')[0] for sample_id in sample_ids]
+    # merged_df.to_excel("merged_df_RES_PL_20231002_plasma.xlsx")
     print(sample_ids)
     # list_of_objects = []
 
@@ -109,34 +112,15 @@ def parse_rdata(file, runname):
         dimsrun.num_replicates = 2
         insert_data([dimsrun])
         # list_of_objects.append(dimsrun.copy())
-    print("before DIMSresults")
+    print("before HMDB")
     print(datetime.now())
 
-    # fill DIMSResults table
-    dimsresults_list = []
-    for index, row in merged_df.iterrows():
-        dimsresults_list_perrow = []
-        for sample_id in sample_ids:
-            dimsresults = DIMSResults()
-            dimsresults.run = dimsrun
-            dimsresults.polarity = polarity
-            dimsresults.m_z = float(row["mzmed.pgrp"])
-            zscore_colname = f'{sample_id}_Zscore'
-            dimsresults.sample_id = sample
-            dimsresults.intensity = float(row[sample_id])
-            dimsresults.z_score = float(row[zscore_colname])
-            dimsresults_list_perrow.append(dimsresults)
-        dimsresults_list.extend(dimsresults_list_perrow)
-    insert_data(dimsresults_list)
-    # list_of_objects.extend(dimsresultsobj.copy())
-    print("after DIMSresults")
-    print(datetime.now())
     # fill HMDB table
     hmdb_objects = []
     for index, row in merged_df.iterrows():
         if row["HMDB_code"]:
             # if theormz_HMDB is not defined, set it to 0
-            if isnan(row["theormz_HMDB"]): # if row["theormz_HMDB"] == " "
+            if isnan(row["theormz_HMDB"]):  # if row["theormz_HMDB"] == " "
                 MZ_index = 0
             else:
                 MZ_index = float(row["theormz_HMDB"])
@@ -150,37 +134,89 @@ def parse_rdata(file, runname):
                             HMDB_code = HMDB_code + "_mH"
                         elif polarity == 1:
                             HMDB_code = HMDB_code + "_pH"
+                        row["HMDB_code"][HMDB_index] = HMDB_code
                     with Session(engine) as session:
                         query = select(HMDB).where(HMDB.hmdb_id == HMDB_code)
                         hmdb_entry = session.exec(query).one_or_none()
 
                     if not hmdb_entry:
                         hmdb_entry = HMDB(
-                            hmdb_id = HMDB_code,
-                            name = row["assi_HMDB"][HMDB_index],
+                            hmdb_id=HMDB_code,
+                            name=row["assi_HMDB"][HMDB_index],
                             # MZ=float(row["theormz_HMDB"])
-                            theor_MZ = MZ_index
+                            theor_MZ=MZ_index
                         )
                         hmdb_objects.append(hmdb_entry)
     insert_data(hmdb_objects)
+
     print("after HMDB")
     print(datetime.now())
 
-def insert_data(list_of_models):
+    print("before DIMSresults")
+    # fill DIMSResults table
+    dimsresults_list = []
+
+    for index, row in merged_df.iterrows():
+        # print(row["HMDB_code"])
+        dimsresults_list_perrow = []
+        for sample_id in sample_ids:
+            dimsresult = DIMSResults()
+            dimsresult.run = dimsrun
+            dimsresult.run_name = runname
+            dimsresult.polarity = polarity
+            dimsresult.m_z = float(row["mzmed.pgrp"])
+            zscore_colname = f'{sample_id}_Zscore'
+            dimsresult.intensity = float(row[sample_id])
+            dimsresult.z_score = float(row[zscore_colname])
+            dimsresult.sample_id = sample_id
+
+            with Session(engine) as session:
+                session.add(dimsresult)
+                session.commit()
+                session.refresh(dimsresult)
+            # insert_data(dimsresult)
+
+            add_sample_hmdb(dimsresult, row, sample_id)
+
+            # dimsresults_list.append(dimsresult)
+        # dimsresults_list.extend(dimsresults_list_perrow)
+    # insert_data(dimsresults_list)
+    # list_of_objects.extend(dimsresultsobj.copy())
+    print("after DIMSresults")
+    print(datetime.now())
+
+
+def add_sample_hmdb(dimsresult, row, sample_id):
     with Session(engine) as session:
-        session.add_all(list_of_models)
+        query = select(Sample).where(Sample.id == sample_id)
+        results = session.exec(query)
+        sample = results.one()
+        dimsresult.sample = sample
+        if row["HMDB_code"]:
+            results = session.query(HMDB).filter(col(HMDB.hmdb_id).in_(row["HMDB_code"]))
+            hmdbs = results.all()
+            # dimsresults.hmdb = hmdbs
+            dimsresult.hmdb = hmdbs
+        session.add(dimsresult)
         session.commit()
+
+
+def insert_data(list_of_models):
+    with Session(engine) as session_commit:
+        session_commit.add_all(list_of_models)
+        session_commit.commit()
 
 
 def main():
     # Update run_name with folder name of data to be inserted
     # path_name = "/Users/mraves2/Metabolomics/DIMSdb/Input_data/Plasma/RData/"
-    path_name = "/Users/mraves2/Metabolomics/DIMSdb/Input_data/Plasma/RtestData/"
+    path_name = "/Users/aluesin2/Documents/DIMSdb/test_data/"
     run_names = [f for f in os.listdir(path_name) if not f.startswith('.')]
     # run_names = sorted(run_names)
     # run_names = run_names[0:(len(run_names)-3)] # last ones are small test datasets
     # run_names = ["t"] # small test dataset
     run_names = ["test_long", "test_wide"] # 2 tests, one with all columns, one with all rows
+    run_names = ["RES_PL_20231002_plasma"]
     for run_name in run_names:
         print(run_name)
         # file_neg = path_name + run_name + '/outlist_ident_space_negative.RData'

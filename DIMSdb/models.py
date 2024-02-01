@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -6,7 +6,7 @@ from sqlmodel import Field, SQLModel, Relationship
 class DIMSRun(SQLModel, table=True):
     name: str = Field(primary_key=True)
     email: str = None
-    date: datetime = None
+    date: str = None
     num_replicates: int = None
 
     dims_results: List["DIMSResults"] = Relationship(back_populates="run")
@@ -18,15 +18,16 @@ class DIMSResultsHMDBLink(SQLModel, table=True):
 
 
 class DIMSResults(SQLModel, table=True):
-    uuid: Optional[int] = Field(default=None, primary_key=True)
-    run_name: str = Field(max_length=50)
+    uuid: int = Field(default=None, primary_key=True)
+    # run_name: str = Field(max_length=50)
     polarity: bool = None  # Positive = true, negative = false
     m_z: float = None
     intensity: float = None
     z_score: float = None
 
     sample_id: str = Field(foreign_key="sample.id")
-    run_name: str = Field(foreign_key="dimsrun.name")
+    run_name: str = Field(foreign_key="dimsrun.name", max_length=50)
+    # hmdb_id: str = Field(foreign_key="hmdb.hmdb_id")
 
     hmdb: List["HMDB"] = Relationship(back_populates="dims_results", link_model=DIMSResultsHMDBLink)
     sample: "Sample" = Relationship(back_populates="dims_results")
