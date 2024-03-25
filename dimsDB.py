@@ -4,7 +4,6 @@ import uvicorn
 
 from DIMSdb.database import create_db_and_tables
 
-
 def init_db(args):
     create_db_and_tables()
 
