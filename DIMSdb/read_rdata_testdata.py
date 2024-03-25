@@ -37,10 +37,8 @@ def parse_rdata(file, runname):
     if polarity_string == 'negative':
         polarity = False
     # read the RData file
-    # result = pyreadr.read_r(file)
     parsed = rdata.parser.parse_file(file)
     result = rdata.conversion.convert(parsed)
-    # identified = pyreadr.read_r(file, use_objects="outlist.identified")
 
     # split data into identified and unidentified part
     identified = result["outlist.ident"]
@@ -61,19 +59,13 @@ def parse_rdata(file, runname):
                       "ppmdev", "sd.ctrls", "theormz_HMDB", "theormz_noise"]
     sample_ids = [col_name for col_name in merged_df.columns
                 if col_name not in cols_to_remove and "_Zscore" not in col_name]
-    # patient_ids = [sample_ids.split('.')[0] for sample_id in sample_ids]
-    # merged_df.to_excel("merged_df_RES_PL_20231002_plasma.xlsx")
-    print(sample_ids)
-    # list_of_objects = []
 
     # replace later with sample type from input
     sample_type = "plasma"
 
     # fill Patients and Samples tables
     for sample_id in sample_ids:
-        # print(sample_id)
         patient_id = sample_id.split(".")[0]
-        # print(patient_id)
         # Patients
         with Session(engine) as session:
             query = select(Patient).where(Patient.intermediate_id == patient_id)
@@ -84,7 +76,6 @@ def parse_rdata(file, runname):
             patient.intermediate_id = patient_id
             patient.birth_year = 2000
             insert_data([patient])
-            # list_of_objects.append(patient.copy())
 
         # Samples
         with Session(engine) as session:
@@ -97,7 +88,6 @@ def parse_rdata(file, runname):
             sample.patient = patient
             sample.type = sample_type
             insert_data([sample])
-            # list_of_objects.append(sample.copy())
 
     # fill DIMSRun table
     with Session(engine) as session:
@@ -111,9 +101,6 @@ def parse_rdata(file, runname):
         dimsrun.date = date.today()
         dimsrun.num_replicates = 2
         insert_data([dimsrun])
-        # list_of_objects.append(dimsrun.copy())
-    print("before HMDB")
-    print(datetime.now())
 
     # fill HMDB table
     hmdb_objects = []
@@ -135,6 +122,7 @@ def parse_rdata(file, runname):
                         elif polarity == 1:
                             HMDB_code = HMDB_code + "_pH"
                         row["HMDB_code"][HMDB_index] = HMDB_code
+
                     with Session(engine) as session:
                         query = select(HMDB).where(HMDB.hmdb_id == HMDB_code)
                         hmdb_entry = session.exec(query).one_or_none()
@@ -149,16 +137,10 @@ def parse_rdata(file, runname):
                         hmdb_objects.append(hmdb_entry)
     insert_data(hmdb_objects)
 
-    print("after HMDB")
-    print(datetime.now())
+    print("___ HMDB done ___")
 
-    print("before DIMSresults")
     # fill DIMSResults table
-    dimsresults_list = []
-
     for index, row in merged_df.iterrows():
-        # print(row["HMDB_code"])
-        dimsresults_list_perrow = []
         for sample_id in sample_ids:
             dimsresult = DIMSResults()
             dimsresult.run = dimsrun
@@ -174,16 +156,10 @@ def parse_rdata(file, runname):
                 session.add(dimsresult)
                 session.commit()
                 session.refresh(dimsresult)
-            # insert_data(dimsresult)
 
             add_sample_hmdb(dimsresult, row, sample_id)
 
-            # dimsresults_list.append(dimsresult)
-        # dimsresults_list.extend(dimsresults_list_perrow)
-    # insert_data(dimsresults_list)
-    # list_of_objects.extend(dimsresultsobj.copy())
-    print("after DIMSresults")
-    print(datetime.now())
+    print("___ DIMSresults done ___")
 
 
 def add_sample_hmdb(dimsresult, row, sample_id):
@@ -195,16 +171,15 @@ def add_sample_hmdb(dimsresult, row, sample_id):
         if row["HMDB_code"]:
             results = session.query(HMDB).filter(col(HMDB.hmdb_id).in_(row["HMDB_code"]))
             hmdbs = results.all()
-            # dimsresults.hmdb = hmdbs
             dimsresult.hmdb = hmdbs
         session.add(dimsresult)
         session.commit()
 
 
 def insert_data(list_of_models):
-    with Session(engine) as session_commit:
-        session_commit.add_all(list_of_models)
-        session_commit.commit()
+    with Session(engine) as session:
+        session.add_all(list_of_models)
+        session.commit()
 
 
 def main():
