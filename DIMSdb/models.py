@@ -14,6 +14,7 @@ class DIMSRun(SQLModel, table=True):
 
 class DIMSResultsHMDBLink(SQLModel, table=True):
     hmdb_uuid: Optional[int] = Field(default=None, foreign_key="hmdb.uuid", primary_key=True)
+    # TODO: verander run_uuid naar bijv. results_uuid
     run_uuid: Optional[int] = Field(default=None, foreign_key="dimsresults.uuid", primary_key=True)
 
 
@@ -33,7 +34,8 @@ class DIMSResults(SQLModel, table=True):
     sample: "Sample" = Relationship(back_populates="dims_results")
     run: "DIMSRun" = Relationship(back_populates="dims_results")
 
-
+# TODO: toevoegen Mpos en Mneg?
+# TODO: nieuwe HMDB V5 - nu al aanpassen database?
 class HMDB(SQLModel, table=True):
     uuid: int = Field(default=None, primary_key=True)
     hmdb_id: str = Field(max_length=14)
@@ -46,6 +48,7 @@ class HMDB(SQLModel, table=True):
 
 class Sample(SQLModel, table=True):
     id: str = Field(primary_key=True)
+    # TODO: misschien veranderen naar matrix ipv type
     type: str = None
 
     patient_id: str = Field(foreign_key="patient.intermediate_id")

@@ -102,6 +102,7 @@ def parse_rdata(file, runname):
         dimsrun.num_replicates = 2
         insert_data([dimsrun])
 
+    # TODO: vul HMDB tabel vanuit HMDB db bestanden ipv run data bestanden - los van nieuwe runs toevoegen
     # fill HMDB table
     hmdb_objects = []
     for index, row in merged_df.iterrows():
@@ -139,6 +140,7 @@ def parse_rdata(file, runname):
 
     print("___ HMDB done ___")
 
+    # TODO: dubbele metabolieten, pos en neg mode, komen 2x in dimsresults, nu 2x dezelfde data ipv verschillend per scanmode
     # fill DIMSResults table
     for index, row in merged_df.iterrows():
         for sample_id in sample_ids:
