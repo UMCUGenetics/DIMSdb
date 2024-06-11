@@ -2,6 +2,8 @@ from sqlmodel import SQLModel, create_engine
 import pathlib
 import configparser
 
+from .models import *
+
 config = configparser.ConfigParser()
 config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
 
