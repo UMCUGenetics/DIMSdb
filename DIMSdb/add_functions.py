@@ -2,45 +2,64 @@ from models import *
 from datetime import date
 
 
-def set_patient(patient_id: str, patient_birth_year: int):
+def add_patient(patient_id: str, patient_birth_year):
     patient = Patient()
     patient.intermediate_id = patient_id
-    patient.birth_year = patient_birth_year
+    if patient_birth_year is not None:
+        patient.birth_year = patient_birth_year
     return patient
 
 
-def set_sample(sample_id: str, patient: Patient, sample_type: str):
+def add_sample(sample_id: str, patient: Patient):
     sample = Sample()
     sample.id = sample_id
     sample.patient = patient
-    sample.type = sample_type
     return sample
 
 
-def set_dims_run(run_name: str, email: str, num_replicates: int, date_run: str):
+def add_dims_run(run_name: str, email: str, num_replicates: int, date_run: date, ppm: int, resolution: int, matrix: str):
     dimsrun = DIMSRun()
     dimsrun.name = run_name
     dimsrun.email = email
     dimsrun.date = date_run
     dimsrun.num_replicates = num_replicates
+    dimsrun.ppm = ppm
+    dimsrun.resolution = resolution
+    dimsrun.matrix = matrix
     return dimsrun
 
 
-def set_dims_result(dimsrun: DIMSRun(), sample: Sample(), polarity: bool, mz_value: float,
-                    intensity: float, z_score: float):
+def add_dims_result(dimsrun: DIMSRun, sample_id: str, polarity: bool, mz_value: float,
+                    intensity: float, z_score: float, ppm_dev: float, row_hash: str,
+                    run_name: str, sample: Sample):
     dims_result = DIMSResults()
     dims_result.run = dimsrun
     dims_result.polarity = polarity
     dims_result.m_z = mz_value
-    dims_result.sample_id = sample
     dims_result.intensity = intensity
     dims_result.z_score = z_score
+    dims_result.ppm_dev = ppm_dev
+    dims_result.row_hash = row_hash
+    dims_result.sample_id = sample_id
+    dims_result.run_name = run_name
+    dims_result.sample = sample
     return dims_result
 
 
-def set_hmdb(name: str, hmdb_code: str, mz_value: float):
+def add_hmdb(hmdb_key: str, hmdb_code: str, sec_hmdb_id: str, name: str, chem_formula: str, mz_value: float):
     hmdb = HMDB()
+    hmdb.hmdb_key = hmdb_key
     hmdb.hmdb_id = hmdb_code
+    hmdb.sec_hmdb_id = sec_hmdb_id
     hmdb.name = name
-    hmdb.theor_MZ = mz_value
+    hmdb.chem_formula = chem_formula
+    hmdb.theor_mz = mz_value
     return hmdb
+
+
+def add_dimsresult_hmdb_link(hmdb: HMDB, dims_result: DIMSResults, adduct: int):
+    link = DIMSResultsHMDBLink()
+    link.hmdb = hmdb
+    link.dims_result = dims_result
+    link.adduct = adduct
+    return link
