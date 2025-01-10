@@ -127,6 +127,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+/myenv/
 
 # Spyder project settings
 .spyderproject
@@ -161,3 +162,10 @@ cython_debug/
 
 # Ignore folder
 test_data/
+/DIMSdb/*.xlsx
+/DIMSdb/db.*
+*.png
+HMDB_data
+.DS_Store
+/Overzicht data DIMSdb/
+
