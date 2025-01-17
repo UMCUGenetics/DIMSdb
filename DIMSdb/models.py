@@ -62,7 +62,7 @@ class HMDB(SQLModel, table=True):
     hmdb_key: str = Field(max_length=14)
     hmdb_id: str = Field(max_length=14)
     sec_hmdb_id: str = Field(max_length=275)
-    name: Field(max_length=275)
+    name: str = Field(max_length=275)
     chem_formula: str = None
     description: Optional[str] = None
     theor_mz: float
