@@ -28,7 +28,7 @@ def read_hmdb_file(file):
 
 def add_hmdb_table(hmdb_df):
     with engine.begin() as conn:
-        hmdb_df.to_sql(name='hmdb', con=conn, if_exists='append', index=False)
+        hmdb_df.to_sql(name='hmdb', con=conn, if_exists='append', index=False, chunksize = 10000)
 
 
 def main():
