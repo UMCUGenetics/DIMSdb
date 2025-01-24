@@ -11,6 +11,7 @@ import re
 import base64
 import time
 import numpy as np
+import math
 
 config = configparser.ConfigParser()
 config.read('/Users/aluesin2/Documents/DIMSdb/config.ini')
@@ -56,13 +57,22 @@ def parse_settings_file(file, runname):
             insert_data([dimsrun], session)
 
 
-def parse_rdata(file, runname):
-    # get polarity from the file name
-    polarity_string = pathlib.Path(file).stem.split("_")[-1]
-    polarity = True  # if polarity is positive
-    if polarity_string == 'negative':
-        polarity = False
+def add_sample_hmdb(dimsresult, hmdb_code, session):
+    print(dimsresult.uuid)
+    results = session.query(HMDB).filter(col(HMDB.sec_hmdb_id).like(hmdb_code + ";"),
+                                         or_(col(HMDB.sec_hmdb_id).endswith(hmdb_code)))
+    hmdbs = results.all()
+    dimsresult.hmdb = hmdbs
+    session.add(dimsresult)
+    session.commit()
 
+
+def insert_data(list_of_models, session):
+    session.add_all(list_of_models)
+    session.commit()
+
+
+def add_data_in_chunks(file, runname, size_chunk):
     # read the RData file
     parsed = rdata.parser.parse_file(file)
     result = rdata.conversion.convert(parsed)
@@ -81,12 +91,32 @@ def parse_rdata(file, runname):
     merged_df["assi_HMDB"] = merged_df["assi_HMDB"].str.split(";")  # string to list
     merged_df = merged_df.reset_index(drop=True)
 
+    num_chunks = math.ceil(len(merged_df) / size_chunk)
+    print("num_chunks:", num_chunks)
+    for chunk in range(num_chunks):
+        print("chunk {} of {}".format(chunk + 1, num_chunks))
+        start = chunk * size_chunk
+        end = (chunk + 1) * size_chunk
+
+        merged_df_chunk = merged_df.iloc[start:end]
+        add_dimsresults(merged_df_chunk, file, runname)
+
+    print("___ DIMSresults done ___")
+
+
+def add_dimsresults(df, file, runname):
+    # get polarity from the file name
+    polarity_string = pathlib.Path(file).stem.split("_")[-1]
+    polarity = True  # if polarity is positive
+    if polarity_string == 'negative':
+        polarity = False
+
     cols_no_samples = ["HMDB_code", "assi_HMDB", "assi_noise", "avg.ctrls",
                        "avg.int", "fq.best", "fq.worst", "iso_HMDB",
                        "mzmax.pgrp", "mzmed.pgrp", "mzmin.pgrp", "nrsamples",
                        "ppmdev", "sd.ctrls", "theormz_HMDB", "theormz_noise"]
     # get sample columns
-    sample_ids = [col_name for col_name in merged_df.columns
+    sample_ids = [col_name for col_name in df.columns
                   if col_name not in cols_no_samples and "_Zscore" not in col_name]
 
     with Session(engine) as session:
@@ -123,7 +153,7 @@ def parse_rdata(file, runname):
 
             # fill DIMSResults table
             zscore_colname = f'{sample_id}_Zscore'
-            for index, row in merged_df.iterrows():
+            for index, row in df.iterrows():
 
                 if first_sample:
                     hash_row = str(round(row['mzmed.pgrp'], 5)) + str(time.time())
@@ -196,28 +226,13 @@ def parse_rdata(file, runname):
                                 session.add(dimsresult_hmdb_link)
                                 session.commit()
 
-    print("___ DIMSresults done ___")
-
-
-def add_sample_hmdb(dimsresult, hmdb_code, session):
-    print(dimsresult.uuid)
-    results = session.query(HMDB).filter(col(HMDB.sec_hmdb_id).like(hmdb_code + ";"),
-                                         or_(col(HMDB.sec_hmdb_id).endswith(hmdb_code)))
-    hmdbs = results.all()
-    dimsresult.hmdb = hmdbs
-    session.add(dimsresult)
-    session.commit()
-
-
-def insert_data(list_of_models, session):
-    session.add_all(list_of_models)
-    session.commit()
-
 
 def main():
     # Update run_name with folder name of data to be inserted
     print("start")
     print(datetime.now())
+
+    size_chunck = 10000
 
     path_name = "/Users/aluesin2/Documents/DIMSdb/test_data/"
     run_names = [f for f in os.listdir(path_name) if not f.startswith('.')]
@@ -232,10 +247,10 @@ def main():
         parse_settings_file(settings_file, run_name)
         file_neg = path_name + run_name + '/outlist_identified_negative.RData'
         print(file_neg)
-        parse_rdata(file_neg, run_name)
+        add_data_in_chunks(file_neg, run_name, size_chunck)
         file_pos = path_name + run_name + '/outlist_identified_positive.RData'
         print(file_pos)
-        parse_rdata(file_pos, run_name)
+        add_data_in_chunks(file_pos, run_name, size_chunck)
 
     print(datetime.now())
     print("___ Data done ___")
