@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import FastAPI, Query
-from sqlmodel import Session, select, or_, col
+from sqlmodel import Session, select, or_, col, func
 import pandas as pd
 
 from .database import engine
@@ -38,7 +38,7 @@ def get_iden_results(run_names: Annotated[list[str], Query()], samples: Annotate
                      zscore_min: float, zscore_max: float):
     with Session(engine) as session:
         query_hmdb_adduct = select(DIMSResults.row_hash, DIMSResultsHMDBLink.hmdb_id, DIMSResultsHMDBLink.adduct) \
-            .join(DIMSResults, onclause=DIMSResults.uuid == DIMSResultsHMDBLink.result_id, isouter=True) \
+            .join(DIMSResults, onclause=DIMSResults.row_hash == DIMSResultsHMDBLink.row_hash, isouter=True) \
             .where(col(DIMSResults.run_name).in_(run_names),
                    col(DIMSResults.sample_id).in_(samples),
                    or_(DIMSResults.z_score <= zscore_min, DIMSResults.z_score >= zscore_max))
@@ -50,7 +50,7 @@ def get_iden_results(run_names: Annotated[list[str], Query()], samples: Annotate
         adducts = set(results_hmdb_adduct.get("Adduct"))
 
         query_dimsresults = select(DIMSResults, HMDB, DIMSResultsHMDBLink.adduct) \
-            .join(DIMSResultsHMDBLink, onclause=DIMSResults.uuid == DIMSResultsHMDBLink.result_id, isouter=True) \
+            .join(DIMSResultsHMDBLink, onclause=DIMSResults.row_hash == DIMSResultsHMDBLink.row_hash, isouter=True) \
             .join(HMDB, onclause=HMDB.uuid == DIMSResultsHMDBLink.hmdb_id, isouter=True) \
             .where(col(DIMSResults.run_name).in_(run_names),
                    col(DIMSResultsHMDBLink.hmdb_id).in_(hmdb_ids),
@@ -69,11 +69,11 @@ def get_unident_results(run_names: Annotated[list[str], Query()], samples: Annot
         query = select(DIMSResults) \
             .where(col(DIMSResults.row_hash).in_(
                 select(DIMSResults.row_hash).join(DIMSResultsHMDBLink,
-                                                  onclause=DIMSResultsHMDBLink.result_id == DIMSResults.uuid, isouter=True) \
+                                                  onclause=DIMSResultsHMDBLink.row_hash == DIMSResults.uuid, isouter=True) \
                     .where(col(DIMSResults.run_name).in_(run_names),
                            col(DIMSResults.sample_id).in_(samples),
                            or_(DIMSResults.z_score <= zscore_min, DIMSResults.z_score >= zscore_max),
-                           col(DIMSResultsHMDBLink.result_id).is_(None)))
+                           col(DIMSResultsHMDBLink.row_hash).is_(None)))
                    )
         results = session.exec(query).all()
 
@@ -90,3 +90,37 @@ def get_all_results(run_names: Annotated[list[str], Query()], samples: Annotated
     all_results = pd.concat(all_results)
 
     return all_results
+
+
+@app.get("/hmdb/info/hmdb_id/{hmdb_id}")
+def get_hmdb_info(hmdb_id: str):
+    if len(hmdb_id) == 9:
+        with Session(engine) as session:
+            query = select(HMDB).where(or_(col(HMDB.sec_hmdb_id).contains(hmdb_id + ";"),
+                                           col(HMDB.sec_hmdb_id).endswith(hmdb_id)))
+            results = session.exec(query).all()
+    elif len(hmdb_id) == 11:
+        with Session(engine) as session:
+            query = select(HMDB).where(HMDB.hmdb_id == hmdb_id)
+            results = session.exec(query).all()
+    return results
+
+
+@app.get("/hmdb/info/hmdb_name/{hmdb_name}")
+def get_hmdb_info(hmdb_name: str):
+    with Session(engine) as session:
+        query = select(HMDB).where(func.upper(HMDB.name).contains(hmdb_name.upper()))
+        results = session.exec(query).all()
+    return results
+
+
+@app.get("/results/metab/{zscore_min}/{zscore_max}")
+def get_metab_results(hmdb_uuids: Annotated[list[str], Query()], zscore_min: float, zscore_max: float):
+    with Session(engine) as session:
+        query = select(DIMSResults, DIMSResultsHMDBLink) \
+        .join(DIMSResultsHMDBLink, onclause=DIMSResultsHMDBLink.row_hash == DIMSResults.row_hash, isouter=True) \
+        .where(col(DIMSResultsHMDBLink.hmdb_id).in_(hmdb_uuids),
+               or_(DIMSResults.z_score <= zscore_min, DIMSResults.z_score >= zscore_max))
+
+        results = session.exec(query).all()
+    return results
