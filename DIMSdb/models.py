@@ -1,11 +1,12 @@
-from typing import List, Optional
+from typing import List
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import date
 
 
 class DIMSResultsHMDBLink(SQLModel, table=True):
-    hmdb_id: int | None = Field(default=None, foreign_key="hmdb.uuid", primary_key=True)
-    result_id: int | None = Field(default=None, foreign_key="dimsresults.uuid", primary_key=True)
+    uuid: int = Field(default=None, primary_key=True)
+    hmdb_id: int | None = Field(default=None, foreign_key="hmdb.uuid", primary_key=False)
+    row_hash: str | None = Field(default=None, foreign_key="dimsresults.row_hash", primary_key=False)
     adduct: int = None
 
     dims_result: "DIMSResults" = Relationship(back_populates="hmdb_links")
@@ -26,7 +27,7 @@ class DIMSRun(SQLModel, table=True):
 
 class Patient(SQLModel, table=True):
     intermediate_id: str = Field(primary_key=True)
-    birth_year: int | None = None
+    birth_date: date | None = None
 
     samples: List["Sample"] = Relationship(back_populates="patient")
 
@@ -34,8 +35,8 @@ class Patient(SQLModel, table=True):
 class Sample(SQLModel, table=True):
     id: str = Field(primary_key=True)
     collection_date: date | None = None
-
     patient_id: str = Field(foreign_key="patient.intermediate_id")
+
     patient: "Patient" = Relationship(back_populates="samples")
     dims_results: List["DIMSResults"] = Relationship(back_populates="sample")
 
@@ -68,3 +69,6 @@ class HMDB(SQLModel, table=True):
     theor_mz: float
 
     dims_result_links: List["DIMSResultsHMDBLink"] = Relationship(back_populates="hmdb")
+
+def map_to_upper(value: str):
+    return value.upper()
