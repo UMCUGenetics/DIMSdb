@@ -1,14 +1,17 @@
-from sqlmodel import Session, create_engine, select, col
+from sqlmodel import Session, create_engine, select, col, or_
 import configparser
 import pathlib
 import os
-from models import DIMSRun, Patient, Sample, HMDB
 import pandas as pd
-from datetime import date, datetime
+from datetime import date, time, datetime
 # https://github.com/vnmabus/rdata
 import rdata
-from add_functions import add_patient, add_dims_result, add_dims_run, add_sample
+from add_functions import *
 import re
+import base64
+import time
+import numpy as np
+import math
 
 config = configparser.ConfigParser()
 # config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
@@ -32,7 +35,11 @@ def parse_settings_file(file, runname):
     if run_date is not None:
         run_date = run_date.group(0)
     else:
-        run_date = "20000101"
+        run_date = re.search("202[0-9]", runname)
+        if run_date is not None:
+            run_date = run_date.group(0) + "0101"
+        else:
+            run_date = "20000101"
 
     run_date = date.fromisoformat(run_date)
 
@@ -41,15 +48,18 @@ def parse_settings_file(file, runname):
         query = select(DIMSRun).where(DIMSRun.name == runname)
         dimsrun = session.exec(query).one_or_none()
 
-    if not dimsrun:
-        dimsrun = add_dims_run(runname,
-                               settings_df["email"]["value"],
-                               settings_df["nrepl"]["value"],
-                               run_date,
-                               5,
-                               settings_df["resol"]["value"],
-                               settings_df["matrix"]["value"])
-        insert_data([dimsrun])
+        if not dimsrun:
+            dimsrun = add_dims_run(runname,
+                                   settings_df["email"]["value"],
+                                   settings_df["nrepl"]["value"],
+                                   run_date,
+                                   5,
+                                   settings_df["resol"]["value"],
+                                   settings_df["matrix"]["value"])
+            insert_data([dimsrun])
+
+        session.refresh(dimsrun)
+    return dimsrun
 
 
 def parse_rdata(file, runname):
@@ -177,7 +187,7 @@ def main():
     for run_name in run_names:
         print(run_name)
         settings_file = path_name + run_name + 'settings.config'
-        parse_settings_file(settings_file, run_name)
+        dimsrun = parse_settings_file(settings_file, run_name)
         # file_neg = path_name + run_name + '/outlist_ident_space_negative.RData'
         file_neg = path_name + run_name + '/outlist_identified_negative.RData'
         print(file_neg)
