@@ -69,6 +69,3 @@ class HMDB(SQLModel, table=True):
     theor_mz: float
 
     dims_result_links: List["DIMSResultsHMDBLink"] = Relationship(back_populates="hmdb")
-
-def map_to_upper(value: str):
-    return value.upper()

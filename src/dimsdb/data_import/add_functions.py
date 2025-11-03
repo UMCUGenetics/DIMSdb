@@ -1,4 +1,4 @@
-from models import *
+from src.dimsdb.models.models import *
 from datetime import date
 
 

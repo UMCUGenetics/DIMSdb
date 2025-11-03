@@ -1,4 +1,4 @@
-from read_rdata_testdata import parse_rdata
+from src.dimsdb.data_import.read_rdata_testdata import parse_rdata_file
 import os
 from datetime import datetime
 
@@ -16,11 +16,11 @@ def main():
         # file_neg = path_name + run_name + '/outlist_ident_space_negative.RData'
         file_neg = path_name + run_name + '/outlist_identified_negative.RData'
         print(file_neg)
-        parse_rdata(file_neg, run_name)
+        parse_rdata_file(file_neg, run_name)
         # file_pos = path_name + run_name + '/outlist_ident_space_positive.RData'
         file_pos = path_name + run_name + '/outlist_identified_positive.RData'
         print(file_pos)
-        parse_rdata(file_pos, run_name)
+        parse_rdata_file(file_pos, run_name)
 
 
 if __name__ == "__main__":

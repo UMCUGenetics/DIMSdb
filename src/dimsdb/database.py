@@ -1,8 +1,8 @@
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import create_engine
 import pathlib
 import configparser
 
-from .models import *
+from src.dimsdb.models.models import *
 
 config = configparser.ConfigParser()
 config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')

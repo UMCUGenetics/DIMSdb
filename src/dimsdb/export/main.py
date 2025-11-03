@@ -3,8 +3,8 @@ from fastapi import FastAPI, Query
 from sqlmodel import Session, select, or_, col, func
 import pandas as pd
 
-from .database import engine
-from .models import DIMSRun, DIMSResults, HMDB, Patient, Sample, DIMSResultsHMDBLink
+from src.dimsdb.database import engine
+from src.dimsdb.models.models import DIMSRun, DIMSResults, HMDB, Sample, DIMSResultsHMDBLink
 
 app = FastAPI()
 

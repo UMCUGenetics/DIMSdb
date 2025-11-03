@@ -9,17 +9,9 @@ import rdata  # https://github.com/vnmabus/rdata
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, create_engine, select, col, or_
 from add_functions import add_patient, add_sample, add_dims_run
-from models import *
+from src.dimsdb.models.models import *
+from src.dimsdb.database import engine
 
-config = configparser.ConfigParser()
-config.read('/Users/aluesin2/Documents/DIMSdb/config.ini')
-
-sql_protocol = config.get('database', 'sql_protocol')
-database_name_or_url = config.get('database', 'database_name_or_url')
-
-sql_url = f'{sql_protocol}{database_name_or_url}'
-
-engine = create_engine(sql_url)
 
 def parse_rdata_file(file):
     # read the RData file

@@ -1,19 +1,7 @@
-import configparser
-import pathlib
-import sqlalchemy
 import pandas as pd
 import rdata
 
-config = configparser.ConfigParser()
-config.read(f'{pathlib.Path(__file__).parent.parent.absolute()}/config.ini')
-
-sql_protocol = config.get('database', 'sql_protocol')
-database_name_or_url = config.get('database', 'database_name_or_url')
-
-sql_url = f'{sql_protocol}{database_name_or_url}'
-
-engine = sqlalchemy.create_engine(sql_url)
-
+from src.dimsdb.database import engine
 
 def read_hmdb_file(file):
     parsed = rdata.parser.parse_file(file)
