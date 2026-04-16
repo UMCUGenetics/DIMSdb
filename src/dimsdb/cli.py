@@ -1,35 +1,55 @@
-import argparse
-
+from pathlib import Path
+from typing import Annotated
+import typer
 import uvicorn
 
-from DIMSdb.database import create_db_and_tables
+from dimsdb import database
+from dimsdb.import_data.fill_hmdb_table import fill_table
+from dimsdb.import_data.read_data import main
 
-def init_db(args):
-    create_db_and_tables()
+# Setup Typer CLI
+cli = typer.Typer(no_args_is_help=True)
 
+@cli.command("init")
+def init_db():
+    database.create_db_and_tables()
 
-def run_server(args):
+@cli.command("run")
+def run_server():
     uvicorn.run("DIMSdb.main:app", reload=True)
 
+@cli.command("import")
+def import_dims(
+        directory: Annotated[
+            Path,
+            typer.Argument(
+                ...,
+                exists=True,
+                file_okay=False,
+                dir_okay=True,
+                readable=True,
+                help="Directory to import DIMS data from"
+            )
+        ]
+):
+    print(f"{directory}")
+    main(directory)
 
-def import_dims(args):
-    print(f"{args.file}")
-
+@cli.command("hmdb")
+def fill_hmdb_table(
+        file: Annotated[
+            Path,
+            typer.Argument(
+                ...,
+                exists=True,
+                file_okay=True,
+                dir_okay=False,
+                readable=True,
+                help="HMDB input RData file"
+            )
+        ]
+):
+    fill_table(file)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.set_defaults(func=lambda args: parser.print_help())
-    subparser = parser.add_subparsers()
-
-    parser_init = subparser.add_parser("init", help="Initializes database")
-    parser_init.set_defaults(func=init_db)
-
-    parser_run = subparser.add_parser("run", help="Run uvicorn server")
-    parser_run.set_defaults(func=run_server)
-
-    parser_import = subparser.add_parser("import", help="Import DIMS data")
-    parser_import.add_argument("file")
-    parser_import.set_defaults(func=import_dims)
-
-    args = parser.parse_args()
-    args.func(args)
+    cli()

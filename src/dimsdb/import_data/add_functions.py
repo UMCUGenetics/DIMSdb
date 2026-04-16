@@ -1,4 +1,4 @@
-from src.dimsdb.models.models import *
+from dimsdb.models.models import Patient, Sample, DIMSRun, DIMSResults, DIMSResultsHMDBLink, HMDB
 from datetime import date
 
 
@@ -17,7 +17,10 @@ def add_sample(sample_id: str, patient: Patient):
     return sample
 
 
-def add_dims_run(run_name: str, email: str, num_replicates: int, date_run: date, ppm: int, resolution: int, matrix: str):
+def add_dims_run(run_name: str,
+                 email: str,
+                 num_replicates: int,
+                 date_run: date, ppm: int, resolution: int, matrix: str, pipeline_version: str):
     dimsrun = DIMSRun()
     dimsrun.name = run_name
     dimsrun.email = email
@@ -26,12 +29,22 @@ def add_dims_run(run_name: str, email: str, num_replicates: int, date_run: date,
     dimsrun.ppm = ppm
     dimsrun.resolution = resolution
     dimsrun.matrix = matrix
+    dimsrun.pipeline_version = pipeline_version
     return dimsrun
 
 
-def add_dims_result(dimsrun: DIMSRun, sample_id: str, polarity: bool, mz_value: float,
-                    intensity: float, z_score: float, ppm_dev: float, row_hash: str,
-                    run_name: str, sample: Sample):
+def add_dims_result(
+    dimsrun: DIMSRun,
+    sample_id: str,
+    polarity: bool,
+    mz_value: float,
+    intensity: float,
+    z_score: float,
+    ppm_dev: float,
+    row_hash: str,
+    run_name: str,
+    sample: Sample,
+):
     dims_result = DIMSResults()
     dims_result.run = dimsrun
     dims_result.polarity = polarity

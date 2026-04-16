@@ -21,6 +21,7 @@ class DIMSRun(SQLModel, table=True):
     resolution: int = None
     matrix: str = None
     email: str = None
+    pipeline_version: str = None
 
     dims_results: List["DIMSResults"] = Relationship(back_populates="run")
 
@@ -67,5 +68,11 @@ class HMDB(SQLModel, table=True):
     chem_formula: str = None
     description: str | None = None
     theor_mz: float
+    relevance: str = None
+    origin: str = None
+    fluids: str = None
+    tissue: str = None
+    disease: str = None
+    pathway: str = None
 
     dims_result_links: List["DIMSResultsHMDBLink"] = Relationship(back_populates="hmdb")
