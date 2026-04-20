@@ -1,4 +1,6 @@
 from typing import List
+from sqlalchemy import Column
+from sqlalchemy.types import Text
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import date
 
@@ -67,7 +69,10 @@ class HMDB(SQLModel, table=True):
     sec_hmdb_id: str = Field(max_length=275)
     name: str = Field(max_length=275)
     chem_formula: str | None = None
-    description: str | None = None
+    description: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
     theor_mz: float
     relevance: str | None = None
     origin: str | None = None
