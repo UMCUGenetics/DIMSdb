@@ -1,7 +1,6 @@
 import base64
 import os
 import re
-from datetime import datetime
 import pandas as pd
 import time
 import rdata
@@ -9,7 +8,6 @@ import argparse
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, select, col, or_
 from .add_functions import add_patient, add_sample, add_dims_run
-# from old_code.read_rdata_old_format import add_dimsresults
 from ..models.models import Patient, Sample, DIMSRun, DIMSResults, HMDB, DIMSResultsHMDBLink
 from ..database import engine
 
@@ -29,7 +27,7 @@ def parse_rdata_file(file):
     sample_ids_zscores = [sample_id + "_Zscore" for sample_id in sample_ids]
 
     rdata_df["HMDB_code"] = rdata_df["HMDB_code"].apply(
-        lambda x: None if x == "" else x
+        lambda x: None if pd.isna(x) or x == "" else x
     )
 
     cols = [
@@ -205,6 +203,26 @@ def transform_dims_data_to_dict(dims_data_df, polarity, run_name):
     return dimsresults_dict
 
 
+def get_dimsresults_uuid_by_row_hash(row_hashes, chunk_size=500):
+    rows = []
+
+    with Session(engine) as session:
+        for i in range(0, len(row_hashes), chunk_size):
+            chunk = row_hashes[i:i + chunk_size]
+            query = (
+                select(DIMSResults.uuid, DIMSResults.row_hash)
+                .where(DIMSResults.row_hash.in_(chunk))
+            )
+            rows.extend(session.exec(query).all())
+
+    uuid_rowhash_df = pd.DataFrame(
+        rows,
+        columns=["dims_results_uuid", "row_hash"]
+    )
+
+    return uuid_rowhash_df
+
+
 def get_dimsresults_hmdb_link(hmdb_code_list, size_chunk):
     like_clauses = [
         or_(
@@ -266,8 +284,6 @@ def add_hmdb_results_link(row_hash_adduct_uuid, size_chunk):
 
 
 def add_link_results_hmdb(hmdb_row_hash_df, size_chunk):
-    size_chunk = max(1, size_chunk // 20)
-
     hmdb_row_hash_df = hmdb_row_hash_df.dropna(subset=["HMDB_code"])
     hmdb_uuid_code_df = get_dimsresults_hmdb_link(hmdb_row_hash_df["HMDB_code"].unique(), size_chunk)
 
@@ -278,7 +294,6 @@ def add_link_results_hmdb(hmdb_row_hash_df, size_chunk):
         .explode()
         .unique()
     )
-
 
     # Get hmdb codes that are not present in the DIMSResultsHMDBLink table
     hmdb_not_present = list(set(hmdb_row_hash_df["HMDB_code"]) - set(sec_hmdb_ids_list))
@@ -306,9 +321,19 @@ def add_link_results_hmdb(hmdb_row_hash_df, size_chunk):
     row_hash_adduct_uuid[['hmdb_id']] = row_hash_adduct_uuid[['hmdb_id']].astype(int)
     row_hash_adduct_uuid[['row_hash']] = row_hash_adduct_uuid[['row_hash']].astype(str)
 
-    print(row_hash_adduct_uuid.size)
+    dims_uuid_df = get_dimsresults_uuid_by_row_hash(
+        row_hash_adduct_uuid["row_hash"].unique())
+
+    final_link_df = (
+        row_hash_adduct_uuid
+        .merge(dims_uuid_df, on="row_hash", how="left")
+        [['dims_results_uuid', 'hmdb_id', 'adduct', 'row_hash']]
+        .drop_duplicates()
+    )
+
+    print(final_link_df.size)
     # Add the new uuid-row hash in the DIMSResultsHMDBLink table
-    add_hmdb_results_link(row_hash_adduct_uuid, size_chunk)
+    add_hmdb_results_link(final_link_df, size_chunk)
 
 def main(dir_path):
     chunk_size = 1000

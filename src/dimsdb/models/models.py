@@ -6,7 +6,8 @@ from datetime import date
 class DIMSResultsHMDBLink(SQLModel, table=True):
     uuid: int = Field(default=None, primary_key=True)
     hmdb_id: int | None = Field(default=None, foreign_key="hmdb.uuid", primary_key=False)
-    row_hash: str | None = Field(default=None, foreign_key="dimsresults.row_hash", primary_key=False)
+    dims_results_uuid: int | None = Field(default=None, foreign_key="dimsresults.uuid", primary_key=False)
+    row_hash: str = None
     adduct: int = None
 
     dims_result: "DIMSResults" = Relationship(back_populates="hmdb_links")
@@ -65,14 +66,14 @@ class HMDB(SQLModel, table=True):
     hmdb_id: str = Field(max_length=14)
     sec_hmdb_id: str = Field(max_length=275)
     name: str = Field(max_length=275)
-    chem_formula: str = None
+    chem_formula: str | None = None
     description: str | None = None
     theor_mz: float
-    relevance: str = None
-    origin: str = None
-    fluids: str = None
-    tissue: str = None
-    disease: str = None
-    pathway: str = None
+    relevance: str | None = None
+    origin: str | None = None
+    fluids: str | None = None
+    tissue: str | None = None
+    disease: str | None = None
+    pathway: str | None = None
 
     dims_result_links: List["DIMSResultsHMDBLink"] = Relationship(back_populates="hmdb")
