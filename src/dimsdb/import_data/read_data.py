@@ -83,6 +83,7 @@ def get_run_parameters(file_path):
     return parameter_df
 
 def add_dimsrun_db(run_name, run_parameters, repo_version):
+    run_parameters = run_parameters.set_index("param")
     with Session(engine) as session:
         query = select(DIMSRun).where(DIMSRun.name == run_name)
         dimsrun = session.exec(query).one_or_none()
