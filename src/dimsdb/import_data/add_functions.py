@@ -1,5 +1,5 @@
 from dimsdb.models.models import Patient, Sample, DIMSRun, DIMSResults, DIMSResultsHMDBLink, HMDB
-from datetime import date
+from datetime import date, datetime
 
 
 def add_patient(patient_id: str, patient_birth_year):
@@ -24,7 +24,7 @@ def add_dims_run(run_name: str,
     dimsrun = DIMSRun()
     dimsrun.name = run_name
     dimsrun.email = email
-    dimsrun.date = date_run
+    dimsrun.date = datetime.strptime(date_run, "%d-%m-%Y").date()
     dimsrun.num_replicates = num_replicates
     dimsrun.ppm = ppm
     dimsrun.resolution = resolution
