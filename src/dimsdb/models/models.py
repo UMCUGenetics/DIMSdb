@@ -74,10 +74,22 @@ class HMDB(SQLModel, table=True):
         sa_column=Column(Text)
     )
     theor_mz: float
-    relevance: str | None = None
-    origin: str | None = None
-    fluids: str | None = None
-    tissue: str | None = None
+    relevance: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
+    origin: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
+    fluids: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
+    tissue: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
     disease: str | None = Field(
         default=None,
         sa_column=Column(Text)
