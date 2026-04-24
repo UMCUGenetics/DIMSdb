@@ -339,14 +339,14 @@ def main(dir_path):
     chunk_size = 1000
     run_name = os.path.basename(dir_path)
     print(run_name)
-    repo_version = get_repo_tag(dir_path+"/repository_version.log", "DIMS")
-    run_parameters_df = get_run_parameters(dir_path+"/workflow_params.txt")
+    repo_version = get_repo_tag(dir_path / "repository_version.log", "DIMS")
+    run_parameters_df = get_run_parameters(dir_path / "workflow_params.txt")
 
     add_dimsrun_db(run_name, run_parameters_df, repo_version)
 
     polarities = ["positive", "negative"]
     for polarity in polarities:
-        peakgroup_df = parse_rdata_file(dir_path+"/outlist_identified_"+polarity+".RData")
+        peakgroup_df = parse_rdata_file(dir_path / f"outlist_identified_{polarity}.RData")
         peakgroup_df["row_hash"] = peakgroup_df.apply(get_row_hash, axis=1)
 
         add_samples_db(peakgroup_df.columns)
