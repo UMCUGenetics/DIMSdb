@@ -66,8 +66,8 @@ class HMDB(SQLModel, table=True):
     uuid: int = Field(default=None, primary_key=True)
     hmdb_key: str = Field(max_length=14)
     hmdb_id: str = Field(max_length=14)
-    sec_hmdb_id: str = Field(max_length=275)
-    name: str = Field(max_length=275)
+    sec_hmdb_id: str = Field(max_length=300)
+    name: str = Field(max_length=300)
     chem_formula: str | None = None
     description: str | None = Field(
         default=None,
