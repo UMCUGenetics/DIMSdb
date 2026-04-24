@@ -78,7 +78,13 @@ class HMDB(SQLModel, table=True):
     origin: str | None = None
     fluids: str | None = None
     tissue: str | None = None
-    disease: str | None = None
-    pathway: str | None = None
+    disease: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
+    pathway: str | None = Field(
+        default=None,
+        sa_column=Column(Text)
+    )
 
     dims_result_links: List["DIMSResultsHMDBLink"] = Relationship(back_populates="hmdb")
