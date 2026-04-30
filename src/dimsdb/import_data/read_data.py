@@ -4,6 +4,7 @@ import re
 import pandas as pd
 import time
 import rdata
+import pyreadr
 import argparse
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, select, col, or_
@@ -18,8 +19,11 @@ def parse_rdata_file(file):
     :return:
     """
     # read the RData file
-    parsed = rdata.parser.parse_file(file)
-    result = rdata.conversion.convert(parsed)
+    # parsed = rdata.parser.parse_file(file)
+    # result = rdata.conversion.convert(parsed)
+
+    result = pyreadr.read_r(file)
+
     df_name = list(result.keys())[0]
 
     rdata_df = result.get(df_name)
