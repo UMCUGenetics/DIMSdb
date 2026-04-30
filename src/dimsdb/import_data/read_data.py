@@ -3,7 +3,6 @@ import os
 import re
 import pandas as pd
 import time
-import rdata
 import pyreadr
 import argparse
 from sqlalchemy.dialects.postgresql import insert
@@ -19,9 +18,6 @@ def parse_rdata_file(file):
     :return:
     """
     # read the RData file
-    # parsed = rdata.parser.parse_file(file)
-    # result = rdata.conversion.convert(parsed)
-
     result = pyreadr.read_r(file)
 
     df_name = list(result.keys())[0]
@@ -155,41 +151,45 @@ def add_dimsresults_to_db(dims_data_dict, chunk_size):
 
 
 def transform_dims_data(peakgroup_df):
-    peakgroup_df = peakgroup_df.drop(["theormz_HMDB"], axis=1)
+    peakgroup_df = peakgroup_df.drop(columns=["theormz_HMDB"])
+
     info_cols = ["mzmed.pgrp", "ppmdev", "HMDB_code", "assi_HMDB", "row_hash"]
-    # get all sample cols, e.g. "C101.1" & "C101.1_Zscore"
-    sample_cols = [c for c in peakgroup_df.columns if c not in info_cols]
 
-    # Melt all sample_cols to long format
-    peakgroup_df_melt = peakgroup_df.melt(
-        id_vars=info_cols,
-        value_vars=sample_cols,
-        var_name="Sample_Type",
-        value_name="Intensity"
+    cols = peakgroup_df.columns.difference(info_cols)
+
+    intensity_cols = [c for c in cols if not c.endswith("_Zscore")]
+    zscore_cols = [c for c in cols if c.endswith("_Zscore")]
+
+    # stack
+    intensity = peakgroup_df[intensity_cols].stack().rename("Intensity")
+
+    zscore = (
+        peakgroup_df[zscore_cols]
+        .rename(columns=lambda c: c[:-7])
+        .stack()
+        .rename("Zscore")
     )
-    peakgroup_df_melt[["Sample", "Type"]] = peakgroup_df_melt["Sample_Type"].str.extract(
-        r"(.+?)(?:_(Zscore))?$"
-    )
-    peakgroup_df_melt["Type"] = peakgroup_df_melt["Type"].fillna("Intensity")
 
-    # Pivot to wide format
-    peakgroup_df_pivot = peakgroup_df_melt.pivot_table(
-        index=info_cols + ["Sample"],
-        columns="Type",
-        values="Intensity",
-        aggfunc="first"
-    ).reset_index()
+    # expliciet joinen i.p.v. implicit alignment
+    result = intensity.to_frame().join(zscore, how="left")
 
-    # Change the values to lists
+    result = result.reset_index().rename(columns={
+        "level_1": "Sample"
+    })
+
+    # join info cols
+    result = result.join(peakgroup_df[info_cols], on="level_0").drop(columns=["level_0"])
+
+    # lijst conversie
     for col in ["HMDB_code", "assi_HMDB"]:
-        peakgroup_df_pivot[col] = (
-            peakgroup_df_pivot[col]
+        result[col] = (
+            result[col]
             .fillna("")
             .astype(str)
-            .str.split(";")
+            .str.split(";", regex=False)
         )
 
-    return peakgroup_df_pivot
+    return result
     
 
 def transform_dims_data_to_dict(dims_data_df, polarity, run_name):
