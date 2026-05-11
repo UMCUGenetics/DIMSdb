@@ -24,7 +24,7 @@ class DIMSRun(SQLModel, table=True):
     resolution: int = None
     matrix: str = None
     email: str = None
-    pipeline_version: str = None
+    pipeline_version: str | None = None
 
     dims_results: List["DIMSResults"] = Relationship(back_populates="run")
 

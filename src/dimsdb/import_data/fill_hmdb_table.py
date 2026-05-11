@@ -29,5 +29,7 @@ def add_hmdb_table(hmdb_df):
 
 
 def fill_table(path_file):
+    print("Transform the RData HMDB file")
     hmdb_df = read_hmdb_file(path_file)
+    print("Start importing the HMDB df")
     add_hmdb_table(hmdb_df)

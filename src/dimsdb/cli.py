@@ -49,6 +49,7 @@ def fill_hmdb_table(
             )
         ]
 ):
+    print("Start fill_table() function")
     fill_table(file)
 
 if __name__ == "__main__":

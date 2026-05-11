@@ -1,7 +1,7 @@
 from sqlmodel import create_engine, SQLModel
-from dimsdb.config import Settings
+from dimsdb.config import settings
 
-engine = create_engine(Settings.DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL)
 
 def create_db_and_tables():
     SQLModel.metadata.drop_all(engine)

@@ -5,6 +5,7 @@ import pandas as pd
 import time
 import pyreadr
 import argparse
+from datetime import datetime
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, select, col, or_
 from .add_functions import add_patient, add_sample, add_dims_run
@@ -194,8 +195,8 @@ def transform_dims_data(peakgroup_df):
 
 def transform_dims_data_to_dict(dims_data_df, polarity, run_name):
     dims_data_df = dims_data_df.drop(["assi_HMDB"], axis=1)
-    dims_data_df.columns = ["m_z", "ppm_dev", "HMDB_code", "row_hash", "sample_id", "intensity", "z_score"]
-
+    #dims_data_df.columns = ["m_z", "ppm_dev", "HMDB_code", "row_hash", "sample_id", "intensity", "z_score"]
+    dims_data_df.columns = ["sample_id", "intensity", "z_score", "m_z", "ppm_dev", "HMDB_code", "row_hash"]
     if polarity == "positive":
         pol = True
     else:
@@ -341,28 +342,39 @@ def add_link_results_hmdb(hmdb_row_hash_df, size_chunk):
     add_hmdb_results_link(final_link_df, size_chunk)
 
 def main(dir_path):
+    time_start = datetime.now()
+    print("Start")
+    print(time_start)
     chunk_size = 1000
     run_name = os.path.basename(dir_path)
     print(run_name)
     repo_version = get_repo_tag(dir_path / "repository_version.log", "DIMS")
     run_parameters_df = get_run_parameters(dir_path / "workflow_params.txt")
-
+    if repo_version == None:
+        repo_version = "test"
     add_dimsrun_db(run_name, run_parameters_df, repo_version)
 
     polarities = ["positive", "negative"]
     for polarity in polarities:
+        print(polarity)
         peakgroup_df = parse_rdata_file(dir_path / f"outlist_identified_{polarity}.RData")
         peakgroup_df["row_hash"] = peakgroup_df.apply(get_row_hash, axis=1)
 
         add_samples_db(peakgroup_df.columns)
+        print("Samples added")
         hmdb_row_hash_df = get_dimsresults_hmdb_link_df(peakgroup_df)
-
+        print("hmdb_row_hash_df done")
         dims_data_df = transform_dims_data(peakgroup_df)
+        print("DIMS data transformation done")
         dims_dict = transform_dims_data_to_dict(dims_data_df, polarity, run_name)
+        print("dims_dict done")
         add_dimsresults_to_db(dims_dict, chunk_size)
-
+        print("DIMS resuls added")
+        print("Add link DIMS results and HMDB")
         add_link_results_hmdb(hmdb_row_hash_df, chunk_size)
-
+    time_end = datetime.now()
+    print("Time total")
+    print(time_end)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
