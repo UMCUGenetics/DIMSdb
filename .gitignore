@@ -171,3 +171,5 @@ HMDB_data
 
 /old_code/
 /local_database/
+/src/dimsdb/archive/
+/.github/agents/

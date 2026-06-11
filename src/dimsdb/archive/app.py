@@ -1,4 +1,4 @@
-from dimsdb.import_data.read_rdata_testdata import parse_rdata_file
+from dimsdb.archive.read_rdata_testdata import parse_rdata_file
 import os
 from datetime import datetime
 

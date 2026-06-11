@@ -7,13 +7,8 @@ from sqlmodel import SQLModel
 
 import dimsdb
 from dimsdb.config import Settings
-from dimsdb.models.models import (
-    DIMSResults,
-    DIMSResultsHMDBLink,
-    DIMSRun,
-    HMDB,
-    Patient,
-    Sample
+from dimsdb.archive.models import (
+    DIMSResultsHMDBLink
 )
 
 # this is the Alembic Config object, which provides

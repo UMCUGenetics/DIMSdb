@@ -7,9 +7,9 @@ import pandas as pd
 import rdata  # https://github.com/vnmabus/rdata
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, select, col, or_
-from add_functions import add_patient, add_sample, add_dims_run
-from dimsdb.models.models import Patient, Sample, DIMSRun, DIMSResults, HMDB, DIMSResultsHMDBLink
-from dimsdb.database import engine
+from dimsdb.archive.add_functions import add_patient, add_sample, add_dims_run
+from dimsdb.archive.models import Patient, Sample, DIMSRun, DIMSResults, HMDB
+from dimsdb.db.session import engine
 
 
 def parse_rdata_file(file):
@@ -133,7 +133,7 @@ def add_samples_patients_db(file_pos, file_neg):
         for sample_id in sample_ids:
             patient_id = sample_id.split(".")[0]
 
-            query_patient = select(Patient).where(Patient.intermediate_id == patient_id)
+            query_patient = select(Patient).where(Patient.id == patient_id)
             patient = session.exec(query_patient).one_or_none()
             if not patient:
                 patient = add_patient(patient_id, None)
@@ -375,3 +375,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

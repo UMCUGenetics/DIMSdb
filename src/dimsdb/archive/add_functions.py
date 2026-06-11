@@ -1,10 +1,10 @@
-from dimsdb.models.models import Patient, Sample, DIMSRun, DIMSResults, DIMSResultsHMDBLink, HMDB
+from dimsdb.archive.models import Patient, Sample, DIMSRun, DIMSResults, HMDB
 from datetime import date, datetime
 
 
 def add_patient(patient_id: str, patient_birth_year):
     patient = Patient()
-    patient.intermediate_id = patient_id
+    patient.id = patient_id
     if patient_birth_year is not None:
         patient.birth_year = patient_birth_year
     return patient

@@ -1,7 +1,7 @@
 import pandas as pd
 import rdata
 
-from dimsdb.database import engine
+from dimsdb.db.session import engine
 
 
 def read_hmdb_file(file):

@@ -3,8 +3,8 @@ from typing import Annotated
 import typer
 import uvicorn
 
-from dimsdb import database
-from dimsdb.import_data.fill_hmdb_table import fill_table
+from dimsdb.db.session import create_db_and_tables, SessionFactory
+from dimsdb.services.hmdb import HMDBService
 from dimsdb.import_data.read_data import main
 
 # Setup Typer CLI
@@ -12,7 +12,7 @@ cli = typer.Typer(no_args_is_help=True)
 
 @cli.command("init")
 def init_db():
-    database.create_db_and_tables()
+    create_db_and_tables()
 
 @cli.command("run")
 def run_server():
@@ -50,7 +50,8 @@ def fill_hmdb_table(
         ]
 ):
     print("Start fill_table() function")
-    fill_table(file)
+    with SessionFactory() as session:
+        HMDBService(session).insert_hmdb_table(file)
 
 if __name__ == "__main__":
     cli()
