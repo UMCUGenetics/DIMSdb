@@ -1,3 +1,8 @@
+"""DIMSRun model representing Direct Infusion Mass Spectrometry runs.
+
+This module defines the DIMSRun entity and its relationships to samples,
+measured m/z values, and other experimental metadata.
+"""
 from datetime import date
 from typing import TYPE_CHECKING
 

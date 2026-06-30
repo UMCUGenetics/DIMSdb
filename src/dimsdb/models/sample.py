@@ -1,3 +1,8 @@
+"""Sample model representing biological samples in the database.
+
+This module defines the Sample entity and its relationships to patients,
+DIMS runs, and measurement results.
+"""
 from datetime import date
 from typing import TYPE_CHECKING
 

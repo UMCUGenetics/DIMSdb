@@ -1,38 +1,44 @@
+"""Models for Human Metabolome Database (HMDB) integration.
+
+This module defines the HMDB model for storing metabolite information and
+linking to measured m/z values.
+"""
 from sqlalchemy import Column
 from sqlalchemy.types import Text
 from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship
 from dimsdb.models.base import BaseModel
-from dimsdb.models.linktables import HMDBMeasuredMZ
 
 if TYPE_CHECKING:
-    from dimsdb.models.measuredmz import MeasuredMZ
+    from dimsdb.models.linktables import HMDBMeasuredMZ
+
 
 class HMDB(BaseModel, table=True):
-    """Representation of an HMDB database entry linked to measured m/z.
-
-    This model stores HMDB identifiers, descriptive metadata and a list of
-    MeasuredMZ objects that reference the HMDB entry. Fields that may
-    contain long textual content use a Text column to preserve formatting.
-
+    """Representation of a metabolite record from HMDB.
+    
+    Stores HMDB identifiers, descriptive metadata, and relationships to measured
+    m/z values. Text fields use SQLAlchemy Text columns to preserve formatting
+    of longer descriptions.
+    
     Attributes:
         id: Primary key for the HMDB record.
-        hmdb_key: HMDB id that is used for metabolites with the same chemical formula.
+        hmdb_key: HMDB key for metabolites sharing the same chemical formula.
         hmdb_id: Primary HMDB identifier.
-        sec_hmdb_id: Secondary HMDB identifiers.
-        name: Chemical name from HMDB.
+        sec_hmdb_id: Secondary HMDB identifiers for alternative records.
+        name: Chemical name of the compound from HMDB.
+        theor_mz: Theoretical m/z value for the compound.
         chem_formula: Chemical formula when available.
         description: Longer textual description from HMDB.
-        theor_mz: Theoretical m/z value for the compound.
         relevance: Relevance notes or curation remarks.
         origin: Origin information (e.g., endogenous, exogenous).
-        fluids: Typical fluids where the compound is observed.
-        tissue: Typical tissues of where the compound is observed.
+        fluids: Typical biological fluids where the compound is observed.
+        tissue: Typical tissues where the compound is observed.
         disease: Associated disease annotations.
-        pathway: Pathway annotations.
-        measuredmzs: List of MeasuredMZ objects linked to this HMDB entry.
+        pathway: Biochemical pathway annotations.
+        hmdb_links: Relationship to MeasuredMZ objects linked to this entry.
     """
+
 
     id: int = Field(default=None, primary_key=True)
     
@@ -43,7 +49,7 @@ class HMDB(BaseModel, table=True):
     theor_mz: float
     
     chem_formula: str | None = None
-    
+
     description: str | None = Field(default=None, sa_column=Column(Text))
     relevance: str | None = Field(default=None, sa_column=Column(Text))
     origin: str | None = Field(default=None, sa_column=Column(Text))
@@ -52,6 +58,4 @@ class HMDB(BaseModel, table=True):
     disease: str | None = Field(default=None, sa_column=Column(Text))
     pathway: str | None = Field(default=None, sa_column=Column(Text))
 
-    measuredmzs: list["MeasuredMZ"] = Relationship(
-        link_model=HMDBMeasuredMZ,
-        back_populates="hmdbs")
+    hmdb_links: list["HMDBMeasuredMZ"] = Relationship(back_populates="hmdb")

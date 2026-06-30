@@ -1,11 +1,16 @@
+"""MeasuredMZ model representing measured mass/charge values.
+
+This module defines the MeasuredMZ entity and its relationships to DIMS runs,
+HMDB records, and measurement results.
+"""
 from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship
 from dimsdb.models.base import BaseModel
-from dimsdb.models.linktables import HMDBMeasuredMZ, DIMSResultsMeasuredMZ, DIMSRunMeasuredMZ
+from dimsdb.models.linktables import DIMSResultsMeasuredMZ, DIMSRunMeasuredMZ
 
 if TYPE_CHECKING:
-    from dimsdb.models.hmdb import HMDB
+    from dimsdb.models.linktables import HMDBMeasuredMZ
     from dimsdb.models.dimsresults import DIMSResults
     from dimsdb.models.dimsrun import DIMSRun
 
@@ -27,6 +32,7 @@ class MeasuredMZ(BaseModel, table=True):
     """
 
     id: int = Field(default=None, primary_key=True)
+    temp_id: str = Field(default=None, index=True)
 
     mz: float
 
@@ -36,9 +42,7 @@ class MeasuredMZ(BaseModel, table=True):
     dimsruns: list["DIMSRun"] = Relationship(
         link_model=DIMSRunMeasuredMZ,
         back_populates="measuredmzs")
-    hmdbs: list["HMDB"] = Relationship(
-        link_model=HMDBMeasuredMZ,
-        back_populates="measuredmzs")
     dimsresults: list["DIMSResults"] = Relationship(
         link_model=DIMSResultsMeasuredMZ,
         back_populates="measuredmzs")
+    hmdb_links: "HMDBMeasuredMZ" = Relationship(back_populates="measuredmz")

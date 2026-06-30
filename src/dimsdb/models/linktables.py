@@ -11,7 +11,12 @@ column names or primary key definitions without updating migrations and
 any code that constructs or queries these association tables.
 """
 
-from sqlmodel import Field, SQLModel
+from typing import TYPE_CHECKING
+from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from dimsdb.models.hmdb import HMDB
+    from dimsdb.models.measuredmz import MeasuredMZ
 
 
 class DIMSRunSample(SQLModel, table=True):
@@ -47,9 +52,12 @@ class HMDBMeasuredMZ(SQLModel, table=True):
         hmdb_id: Foreign key referencing the HMDB entry.
         measuredmz_id: Foreign key referencing the MeasuredMZ.
     """
-    adduct: int | None = None
     hmdb_id: int = Field(default=None, foreign_key="hmdb.id", primary_key=True)
     measuredmz_id: int = Field(default=None, foreign_key="measuredmz.id", primary_key=True)
+    adduct: int | None = None
+
+    hmdb: "HMDB" = Relationship(back_populates="hmdb_links")
+    measuredmz: "MeasuredMZ" = Relationship(back_populates="measuredmz_links")
 
 
 class DIMSResultsSample(SQLModel, table=True):

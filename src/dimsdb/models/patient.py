@@ -1,3 +1,8 @@
+"""Patient model representing clinical subjects in the database.
+
+This module defines the Patient entity and its relationships to samples
+and other clinical entities.
+"""
 from datetime import date
 from typing import TYPE_CHECKING
 
@@ -12,7 +17,7 @@ class Patient(BaseModel, table=True):
     """Represent a patient and their associated samples.
 
     This model stores basic patient metadata and defines a relationship to
-    ``Sample`` objects through the ``PatientSample`` link table.
+    Sample objects through the PatientSample link table.
 
     Attributes:
         id: Primary key for the patient.
