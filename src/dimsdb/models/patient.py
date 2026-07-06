@@ -26,7 +26,7 @@ class Patient(BaseModel, table=True):
         diagnosis: Clinical diagnosis or notes associated with the patient.
         samples: List of associated Sample objects.
     """
-    id: int = Field(primary_key=True)
+    id: int | None = Field(primary_key=True)
     patient_id: str | None = None
     birth_date: date | None = None
     diagnosis: str | None = None

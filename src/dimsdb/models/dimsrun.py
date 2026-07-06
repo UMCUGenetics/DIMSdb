@@ -34,7 +34,7 @@ class DIMSRun(BaseModel, table=True):
         measuredmzs: MeasuredMZ entries recorded for this run.
     """
 
-    id: int = Field(primary_key=True)
+    id: int | None = Field(primary_key=True)
     run_id: str
     date: date
     num_replicates: int | None = None

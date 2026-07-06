@@ -15,7 +15,7 @@ requested sample does not exist and `ExistsError` when attempting to
 create a sample that already exists.
 """
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import Session
 
 import dimsdb.crud.sample as sample_crud
@@ -56,7 +56,10 @@ class SampleService:
         Returns:
             The matching `Sample` instance.
         """
-        return sample_crud.select_sample_by_id(self.session, sample_id)
+        try:
+            return sample_crud.select_sample_by_id(self.session, sample_id)
+        except NoResultFound:
+            raise NotFoundError("Sample not found")
 
     def create_sample(self, sample: Sample) -> Sample:
         """Create a new Sample in the database.

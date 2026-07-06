@@ -44,11 +44,11 @@ def select_ids_by_temp_keys(db_session: Session, temp_keys: list[str]) -> dict[s
         A dictionary mapping temporary keys to their corresponding database IDs.
     """
     statement = (
-        select(DIMSResults.id, DIMSResults.temp_id)
-        .where(DIMSResults.temp_id.in_(temp_keys))
+        select(DIMSResults.id, DIMSResults.temp_key)
+        .where(DIMSResults.temp_key.in_(temp_keys))
     )
     results = db_session.exec(statement).all()
-    return {row.temp_id: row.id for row in results}
+    return {row.temp_key: row.id for row in results}
 
 
 def insert_dimsresults(db_session: Session, dimsresults: DIMSResults) -> DIMSResults:
@@ -95,8 +95,10 @@ def insert_bulk_dimsresults(db_session: Session, list_dimsresults_dicts: list[di
     try:
         db_session.exec(insert(DIMSResults), params=list_dimsresults_dicts)
         db_session.commit()
-    except Exception:
+    except Exception as e:
         db_session.rollback()
+        print(type(e))
+        print(e)
         raise
 
 

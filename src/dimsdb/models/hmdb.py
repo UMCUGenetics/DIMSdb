@@ -40,7 +40,7 @@ class HMDB(BaseModel, table=True):
     """
 
 
-    id: int = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     
     hmdb_key: str = Field(max_length=14)
     hmdb_id: str = Field(max_length=14)

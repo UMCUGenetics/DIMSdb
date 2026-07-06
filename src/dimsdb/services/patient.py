@@ -41,7 +41,10 @@ class PatientService:
         Raises:
             NoResultFound: If no patient with the given ID exists.
         """
-        return patient_crud.select_patient_by_id(self.session, patient_id)
+        try:
+            return patient_crud.select_patient_by_id(self.session, patient_id)
+        except NoResultFound:
+            raise NotFoundError("Patient not found")
 
     def create_patient(self, patient: Patient) -> Patient:
         """Create a new patient record.

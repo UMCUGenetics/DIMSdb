@@ -31,7 +31,7 @@ class MeasuredMZ(BaseModel, table=True):
         dimsresults: DIMSResults entries associated with this measured m/z.
     """
 
-    id: int = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     temp_id: str = Field(default=None, index=True)
 
     mz: float
@@ -45,4 +45,4 @@ class MeasuredMZ(BaseModel, table=True):
     dimsresults: list["DIMSResults"] = Relationship(
         link_model=DIMSResultsMeasuredMZ,
         back_populates="measuredmzs")
-    hmdb_links: "HMDBMeasuredMZ" = Relationship(back_populates="measuredmz")
+    measuredmz_links: "HMDBMeasuredMZ" = Relationship(back_populates="measuredmz")

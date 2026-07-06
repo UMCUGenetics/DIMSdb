@@ -6,8 +6,8 @@ and DIMS results) exist in the database, and establishing relationships between 
 """
 import os
 import uuid
+from datetime import datetime
 from pathlib import Path
-
 from pandas import DataFrame, Index
 from sqlmodel import Session
 
@@ -42,7 +42,7 @@ class IngestionService:
         """Initialize the IngestionService."""
         self.session = session
 
-    def ingest_run(self, session, dir_path: Path, chunk_size: int):
+    def ingest_run(self, dir_path: Path, chunk_size: int) -> None:
         """Ingest a complete DIMS run from a directory.
         
         Processes a DIMS run directory by parsing metadata, creating or linking
@@ -51,7 +51,6 @@ class IngestionService:
         memory usage on large datasets.
         
         Args:
-            session: The database session for executing operations.
             dir_path: Path to the DIMS run directory containing result files.
             chunk_size: Number of peak groups to process per batch operation.
         """
@@ -59,28 +58,31 @@ class IngestionService:
         
         repo_version, run_params = self._load_run_metadata(dir_path)
 
-        run = self._ensure_run_exists(session, DIMSRunService, run_name, run_params, repo_version)
-
+        run = self._ensure_run_exists(run_name, run_params, repo_version)
+        print("Run added")
         for polarity in ["positive", "negative"]:
             peakgroup_df = parse_rdata_file(str(dir_path / f"outlist_identified_{polarity}.RData"))
 
-            list_samples = self._ensure_samples_patients_dimsrun(
-                SampleService, PatientService, peakgroup_df.columns, run)
+            list_samples = self._ensure_samples_patients_dimsrun(peakgroup_df.columns, run)
+            print("Samples and Patients added")
 
             for row_index in range(0, len(peakgroup_df), chunk_size):
                 peakgroup_df_chunk = peakgroup_df[row_index:row_index + chunk_size]
 
-                peakgroup_df_chunk, measuredmz_dimsrun_link = self._ensure_measuredmz(MeasuredMZService, peakgroup_df_chunk, polarity)
+                peakgroup_df_chunk, measuredmz_dimsrun_link = self._ensure_measuredmz(
+                    peakgroup_df_chunk, polarity, run)
+                print("MeasuredMZ added")
 
-                measuredmz_hmdb_ids_link = self._ensure_hmdb(HMDBService, peakgroup_df_chunk)
+                measuredmz_hmdb_ids_link = self._ensure_hmdb(peakgroup_df_chunk)
+                print("HMDB added")
 
-                measuredmz_sample_dimsresults_link = self._ensure_dimsresults(
-                    DIMSResultsService, peakgroup_df_chunk, list_samples
-                )
+                measuredmz_sample_dimsresults_link = self._ensure_dimsresults(peakgroup_df_chunk, list_samples)
+                print("DIMSResults added")
 
                 self._ensure_link_tables(
-                    measuredmz_dimsrun_link, measuredmz_hmdb_ids_link,
-                    measuredmz_sample_dimsresults_link, LinktablesService)
+                    measuredmz_dimsrun_link, measuredmz_hmdb_ids_link, measuredmz_sample_dimsresults_link
+                )
+                print("Links added")
 
 
     def _load_run_metadata(self, dir_path: Path) -> tuple[str, DataFrame]:
@@ -101,11 +103,14 @@ class IngestionService:
         return repo_version, run_params
 
     def _ensure_run_exists(
-            self, session, dimsrun_service: DIMSRunService, run_name: str, run_params: DataFrame, repo_version: str) -> DIMSRun:
+            self,
+            run_name: str,
+            run_params: DataFrame,
+            repo_version: str,
+    ) -> DIMSRun:
         """Retrieve an existing DIMSRun or create one if it does not exist.
         
         Args:
-            session: The database session for executing operations.
             run_name: The unique identifier for the run.
             run_params: DataFrame containing run parameters extracted from workflow metadata.
             repo_version: The repository version used for this run.
@@ -113,48 +118,53 @@ class IngestionService:
         Returns:
             The existing or newly created DIMSRun record.
         """
+
+        dimsrun_service = DIMSRunService(self.session)
+
         try:
-            run = dimsrun_service.get_dimsrun_by_runname(session, run_name)
+            run = dimsrun_service.get_dimsrun_by_runname(run_name)
         except NotFoundError:
             run = None
         
         if run:
             return run
 
+        params = dict(zip(run_params["param"], run_params["value"]))
+
         run = DIMSRun(
             run_id=run_name,
             name=run_name,
-            email=run_params.at["email", "value"],
-            nr_replicates=run_params.at["nr_replicates", "value"],
-            date=run_params.at["date", "value"],
-            ppm=run_params.at["ppm", "value"],
-            resolution=run_params.at["resolution", "value"],
-            matrix=run_params.at["matrix", "value"],
+            email=params["email"],
+            nr_replicates=params["nr_replicates"],
+            date=datetime.strptime(params["date"], "%d-%m-%Y").date(),
+            ppm=float(params["ppm"]),
+            resolution=params["resolution"],
+            matrix=params["matrix"],
             repo_version=repo_version,
         )
 
-        return dimsrun_service.create_dimsrun(session, run)
+        return dimsrun_service.create_dimsrun(run)
 
     def _ensure_samples_patients_dimsrun(
-            self,
-            sample_service: SampleService,
-            patient_service: PatientService,
-            df_columns: Index[str],
-            dimsrun: DIMSRun) -> list[Sample]:
+        self,
+        df_columns: Index,
+        dimsrun: DIMSRun,
+    ) -> list[Sample]:
         """Ensure samples, patients, and their relationships to the run exist.
         
         Creates or retrieves samples and patients from the dataframe columns,
         establishes patient-sample relationships, and links samples to the run.
         
         Args:
-            sample_service: Service instance for sample operations.
-            patient_service: Service instance for patient operations.
             df_columns: Column names from the results dataframe representing samples.
             dimsrun: The DIMSRun to link samples to.
         
         Returns:
             A list of Sample records linked to the run.
         """
+        sample_service = SampleService(self.session)
+        patient_service = PatientService(self.session)
+        
         sample_ids = get_samples_run(df_columns)
         list_samples = []
 
@@ -175,10 +185,10 @@ class IngestionService:
 
     def _ensure_measuredmz(
             self,
-            measuredmz_service: MeasuredMZService,
             peakgroup_df_chunk: DataFrame,
             polarity: str,
-            dimsrun: DIMSRun) -> tuple[DataFrame, list[dict]]:
+            dimsrun: DIMSRun
+    ) -> tuple[DataFrame, list[dict]]:
         """Create MeasuredMZ records and link them to the run.
         
         Creates temporary keys for tracking m/z values, inserts them into the database,
@@ -186,7 +196,6 @@ class IngestionService:
         with the assigned database IDs.
         
         Args:
-            measuredmz_service: Service instance for MeasuredMZ operations.
             peakgroup_df_chunk: Dataframe chunk containing peak group data.
             polarity: Ion polarity mode ("positive" or "negative").
             dimsrun: The DIMSRun to link measured m/z values to.
@@ -195,15 +204,16 @@ class IngestionService:
             A tuple of (updated_dataframe, link_list) where link_list contains
             dictionaries mapping DIMSRun IDs to MeasuredMZ IDs.
         """
+        measuredmz_service = MeasuredMZService(self.session)
 
         temp_keys = [str(uuid.uuid4()) for _ in range(len(peakgroup_df_chunk))]
         peakgroup_df_chunk["_mz_temp_key"] = temp_keys
 
         list_measured_mzs = [
             MeasuredMZ(
-                temp_key=row["_mz_temp_key"],
-                mz=row["mz"],
-                ppm_dev=row["ppmdev"],
+                temp_id=row["_mz_temp_key"],
+                mz=row["mzmed.pgrp"],
+                ppm_dev=None if row["ppmdev"] == float("inf") else row["ppmdev"],
                 is_positive=True if polarity == "positive" else False,
             )
             for row in peakgroup_df_chunk.to_dict("records")
@@ -226,19 +236,19 @@ class IngestionService:
 
         return peakgroup_df_chunk, link_list
 
-    def _ensure_hmdb(self, hmdb_service: HMDBService, peakgroup_df_chunk: DataFrame) -> list[dict]:
+    def _ensure_hmdb(self, peakgroup_df_chunk: DataFrame) -> list[dict]:
         """Ensure HMDB records exist and create links from measured m/z to HMDB.
         
         Parses HMDB identifiers from the dataframe, creates missing HMDB records,
         and builds link entries with adduct information.
         
         Args:
-            hmdb_service: Service instance for HMDB operations.
             peakgroup_df_chunk: Dataframe chunk containing peak group data with HMDB identifiers.
         
         Returns:
             A list of dictionaries containing links between measured m/z values and HMDB records.
         """
+        hmdb_service = HMDBService(self.session)
         peakgroup_df_chunk = peakgroup_df_chunk.dropna(subset=["HMDB_code"])
 
         peakgroup_df_chunk["hmdb_ids_list"] = (
@@ -268,7 +278,7 @@ class IngestionService:
 
         hmdb_info_lookup = {}
         for row in peakgroup_df_chunk.itertuples(index=False):
-            for hmdb_id in row.hmdb_ids_list:
+            for hmdb_id, _ in row.hmdb_ids_list:
                 if hmdb_id not in hmdb_info_lookup:
                     hmdb_info_lookup[hmdb_id] = row
 
@@ -290,8 +300,9 @@ class IngestionService:
 
         hmdbs_db = hmdb_service.get_hmdbs_by_list_hmdb_ids(unique_hmdb_ids)
 
-        hmdb_map = {h.hmdb_id: h for h in hmdbs_db}
+        hmdb_map = {h.hmdb_id: h.id for h in hmdbs_db}
 
+        seen = set()
         link_list = []
 
         for row in peakgroup_df_chunk.itertuples(index=False):
@@ -300,20 +311,23 @@ class IngestionService:
             for hmdb_id, adduct in row.hmdb_ids_list:
                 db_id = hmdb_map.get(hmdb_id)
                 if db_id:
-                    link_list.append({
-                        "measuredmz_id": measuredmz_id,
-                        "hmdb_id": db_id,
-                        "adduct": adduct
-                    })
+                    key = (db_id, measuredmz_id, adduct)
+                    if key not in seen:
+                        seen.add(key)
+                        link_list.append({
+                            "measuredmz_id": measuredmz_id,
+                            "hmdb_id": db_id,
+                            "adduct": adduct
+                        })
 
         return link_list
 
 
     def _ensure_dimsresults(
             self,
-            dimsresult_service: DIMSResultsService,
             peakgroup_df_chunk: DataFrame,
-            list_samples: list[Sample]) -> list[dict]:
+            list_samples: list[Sample]
+    ) -> list[dict]:
         """Create DIMS result records for intensities and link to samples and measured m/z.
         
         Extracts intensity measurements and z-scores from the dataframe, creates
@@ -329,7 +343,7 @@ class IngestionService:
             A list of dictionaries containing links between DIMSResults, measured m/z,
             and samples.
         """
-
+        dimsresult_service = DIMSResultsService(self.session)
         sample_name_to_id = {
             sample.sample_id: sample.id for sample in list_samples
         }
@@ -363,7 +377,7 @@ class IngestionService:
                     "sample_id": sample_name_to_id[col]
                 })
 
-        id_map = dimsresult_service.create_bulk_dimsresults(list_dimsresults)
+        id_map = dimsresult_service.create_bulk_dimsresults(list_dimsresults, 1000)
 
         link_list = []
 
@@ -381,8 +395,8 @@ class IngestionService:
             self,
             measuredmz_dimsrun_link: list[dict],
             measuredmz_hmdb_ids_link: list[dict],
-            measuredmz_sample_dimsresults_link: list[dict],
-            linktable_service: LinktablesService) -> None:
+            measuredmz_sample_dimsresults_link: list[dict]
+    ) -> None:
         """Create links in junction tables to establish entity relationships.
         
         Populates the junction tables that connect DIMSRun to MeasuredMZ, HMDB to
@@ -393,8 +407,8 @@ class IngestionService:
             measuredmz_dimsrun_link: List of links between DIMSRun and MeasuredMZ.
             measuredmz_hmdb_ids_link: List of links between HMDB and MeasuredMZ.
             measuredmz_sample_dimsresults_link: List of links between DIMSResults, MeasuredMZ, and Samples.
-            linktable_service: Service instance for managing link table operations.
         """
+        linktable_service = LinktablesService(self.session)
 
         linktable_service.create_links_in_bulk(DIMSRunMeasuredMZ, measuredmz_dimsrun_link)
 

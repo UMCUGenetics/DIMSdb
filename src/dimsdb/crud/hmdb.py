@@ -112,8 +112,8 @@ def insert_hmdb_table(db_session: Session, hmdb_df: DataFrame) -> None:
         Exception: If the database operation fails; the transaction is rolled back.
     """
     try:
-        with db_session.begin() as conn:
-            hmdb_df.to_sql(name='hmdb', con=conn, index=False, if_exists='append', chunksize=5000)
+        engine = db_session.get_bind()
+        hmdb_df.to_sql(name='hmdb', con=engine, index=False, if_exists='append', chunksize=5000)
     except Exception:
         db_session.rollback()
         raise

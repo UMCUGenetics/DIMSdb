@@ -30,7 +30,7 @@ class DIMSResults(BaseModel, table=True):
         measuredmzs: List of MeasuredMZ records associated with this result.
     """
 
-    id: int = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     temp_key: str = Field(default=None, nullable=False, index=True)
 
     intensity: float | None = None

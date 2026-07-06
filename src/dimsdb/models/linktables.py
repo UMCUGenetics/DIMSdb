@@ -54,7 +54,7 @@ class HMDBMeasuredMZ(SQLModel, table=True):
     """
     hmdb_id: int = Field(default=None, foreign_key="hmdb.id", primary_key=True)
     measuredmz_id: int = Field(default=None, foreign_key="measuredmz.id", primary_key=True)
-    adduct: int | None = None
+    adduct: int = Field(primary_key=True)
 
     hmdb: "HMDB" = Relationship(back_populates="hmdb_links")
     measuredmz: "MeasuredMZ" = Relationship(back_populates="measuredmz_links")

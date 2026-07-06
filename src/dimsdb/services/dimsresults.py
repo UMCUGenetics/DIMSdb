@@ -61,7 +61,7 @@ class DIMSResultsService:
         except IntegrityError:
             raise ExistsError("DIMSResult already exists")
 
-    def create_bulk_dimsresults(self, dimsresults: list[DIMSResults]) -> dict[str, int]:
+    def create_bulk_dimsresults(self, dimsresults: list[DIMSResults], batch_size = 1000) -> dict[str, int]:
         """Create multiple DIMSResults records in bulk.
         
         Creates result records in batch and returns a mapping from temporary keys
@@ -80,11 +80,17 @@ class DIMSResultsService:
             list_dimsresult_dicts = [
                 dimsresult.model_dump(exclude_none=True) for dimsresult in dimsresults
             ]
-            dimsresults_crud.insert_bulk_dimsresults(self.session, list_dimsresult_dicts)
+            id_map = {}
 
-            temp_keys = [dimsresult.temp_key for dimsresult in dimsresults]
+            for i in range(0, len(list_dimsresult_dicts), batch_size):
+                batch = list_dimsresult_dicts[i:i+batch_size]
+                dimsresults_crud.insert_bulk_dimsresults(self.session, batch)
 
-            id_map = dimsresults_crud.select_ids_by_temp_keys(self.session, temp_keys)
+                batch_temp_keys = [item["temp_key"] for item in batch]
+
+                batch_id_map = dimsresults_crud.select_ids_by_temp_keys(self.session, batch_temp_keys)
+
+                id_map.update(batch_id_map)
             return id_map
         except IntegrityError:
             raise ExistsError("One or more DIMSResults already exist")

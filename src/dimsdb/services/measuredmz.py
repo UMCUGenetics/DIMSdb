@@ -97,7 +97,7 @@ class MeasuredMZService:
         Returns:
             A dictionary mapping temporary keys to their corresponding database IDs.
         """
-        temp_keys = [measured_mz.temp_key for measured_mz in measured_mzs]
+        temp_keys = [measured_mz.temp_id for measured_mz in measured_mzs]
         id_map = measuredmz_crud.select_ids_by_temp_keys(self.session, temp_keys)
         return id_map
 

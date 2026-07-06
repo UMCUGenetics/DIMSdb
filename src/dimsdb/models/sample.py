@@ -30,7 +30,7 @@ class Sample(BaseModel, table=True):
         dimsresults: DIMSResults associated with this sample.
         dimsruns: DIMSRun entries that contain this sample.
     """
-    id: int = Field(primary_key=True)
+    id: int | None = Field(primary_key=True)
     sample_id: str | None = None
     collection_date: date | None = None
 
