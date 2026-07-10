@@ -13,6 +13,7 @@ from dimsdb.models.dimsresults import DIMSResults
 from dimsdb.models.sample import Sample
 from dimsdb.models.measuredmz import MeasuredMZ
 
+import time
 
 def select_dimsresults_by_id(db_session: Session, dimsresults_id: int) -> DIMSResults:
     """Retrieve a DIMSResults record by its ID.
@@ -50,6 +51,29 @@ def select_ids_by_temp_keys(db_session: Session, temp_keys: list[str]) -> dict[s
     results = db_session.exec(statement).all()
     return {row.temp_key: row.id for row in results}
 
+def select_ids_by_temp_keys_in_batches(db_session: Session, temp_keys: list[str], batch_size: int) -> dict[str, int]:
+    """Map temporary keys to database IDs for DIMSResults records in batches.
+
+    Retrieves the mapping between temporary tracking keys and assigned database IDs
+    for a set of DIMSResults records in batches.
+
+    Args:
+        db_session: Active database session.
+        temp_keys: List of temporary keys to look up.
+        batch_size: The number of keys to process in each batch.
+    Returns:
+        A dictionary mapping temporary keys to their corresponding database IDs.
+    """
+    id_map = {}
+    
+    for i in range(0, len(temp_keys), batch_size):
+        batch = temp_keys[i:i+batch_size]
+        statement = select(DIMSResults.id, DIMSResults.temp_key).where(DIMSResults.temp_key.in_(batch))
+
+        results = db_session.exec(statement).all()
+        id_map.update({row.temp_key: row.id for row in results})
+
+    return id_map
 
 def insert_dimsresults(db_session: Session, dimsresults: DIMSResults) -> DIMSResults:
     """Create a new DIMSResults record in the database.
@@ -95,10 +119,23 @@ def insert_bulk_dimsresults(db_session: Session, list_dimsresults_dicts: list[di
     try:
         db_session.exec(insert(DIMSResults), params=list_dimsresults_dicts)
         db_session.commit()
-    except Exception as e:
+    except Exception:
         db_session.rollback()
-        print(type(e))
-        print(e)
+        raise
+
+def insert_bulk_dimsresults_in_batches(
+        db_session: Session,
+        list_dimsresults_dicts: list[dict[str, Any]],
+        batch_size: int
+) -> None:
+    try:
+        for i in range(0, len(list_dimsresults_dicts), batch_size):
+            batch = list_dimsresults_dicts[i:i+batch_size]
+            db_session.exec(insert(DIMSResults), params=batch)
+
+        db_session.commit()
+    except Exception:
+        db_session.rollback()
         raise
 
 

@@ -13,7 +13,6 @@ from sqlmodel import Session
 
 from dimsdb.models.patient import Patient
 from dimsdb.models.measuredmz import MeasuredMZ
-from dimsdb.models.dimsresults import DIMSResults
 from dimsdb.models.sample import Sample
 from dimsdb.models.dimsrun import DIMSRun
 from dimsdb.models.hmdb import HMDB
@@ -61,29 +60,24 @@ class IngestionService:
         run = self._ensure_run_exists(run_name, run_params, repo_version)
         print("Run added")
         for polarity in ["positive", "negative"]:
+            print(f"Processing polarity {polarity}")
             peakgroup_df = parse_rdata_file(str(dir_path / f"outlist_identified_{polarity}.RData"))
 
             list_samples = self._ensure_samples_patients_dimsrun(peakgroup_df.columns, run)
-            print("Samples and Patients added")
 
             for row_index in range(0, len(peakgroup_df), chunk_size):
                 peakgroup_df_chunk = peakgroup_df[row_index:row_index + chunk_size]
 
                 peakgroup_df_chunk, measuredmz_dimsrun_link = self._ensure_measuredmz(
                     peakgroup_df_chunk, polarity, run)
-                print("MeasuredMZ added")
 
                 measuredmz_hmdb_ids_link = self._ensure_hmdb(peakgroup_df_chunk)
-                print("HMDB added")
-
-                measuredmz_sample_dimsresults_link = self._ensure_dimsresults(peakgroup_df_chunk, list_samples)
-                print("DIMSResults added")
+                measuredmz_sample_dimsresults_link = self._ensure_dimsresults(
+                    peakgroup_df_chunk, list_samples, 10000)
 
                 self._ensure_link_tables(
                     measuredmz_dimsrun_link, measuredmz_hmdb_ids_link, measuredmz_sample_dimsresults_link
                 )
-                print("Links added")
-
 
     def _load_run_metadata(self, dir_path: Path) -> tuple[str, DataFrame]:
         """Load repository version and run parameters from metadata files.
@@ -326,7 +320,8 @@ class IngestionService:
     def _ensure_dimsresults(
             self,
             peakgroup_df_chunk: DataFrame,
-            list_samples: list[Sample]
+            list_samples: list[Sample],
+            batch_size: int
     ) -> list[dict]:
         """Create DIMS result records for intensities and link to samples and measured m/z.
         
@@ -335,9 +330,9 @@ class IngestionService:
         measured m/z values.
         
         Args:
-            dimsresult_service: Service instance for DIMSResults operations.
             peakgroup_df_chunk: Dataframe chunk containing measured intensities.
             list_samples: List of Sample records with established IDs.
+            batch_size: Batch size to use to insert the DIMS results in the database.
         
         Returns:
             A list of dictionaries containing links between DIMSResults, measured m/z,
@@ -353,49 +348,49 @@ class IngestionService:
             if col in sample_name_to_id
         ]
 
-        records = peakgroup_df_chunk.to_dict("records")
 
         list_dimsresults = []
         meta_list = []
 
-        for row in records:
+        for row in peakgroup_df_chunk.to_dict("records"):
             measuredmz_id = row["measuredmz_id"]
 
             for col in intensity_columns:
                 temp_key = str(uuid.uuid4())
-                list_dimsresults.append(
-                    DIMSResults(
-                        temp_key=temp_key,
-                        intensity=row[col],
-                        z_score=row.get(f"{col}_Zscore")
+
+                list_dimsresults.append({
+                    "temp_key": temp_key,
+                    "intensity": row[col],
+                    "z_score": row.get(f"{col}_Zscore")
+                })
+
+                meta_list.append(
+                    (
+                        temp_key,
+                        measuredmz_id,
+                        sample_name_to_id[col]
                     )
                 )
 
-                meta_list.append({
-                    "temp_key": temp_key,
-                    "measuredmz_id": measuredmz_id,
-                    "sample_id": sample_name_to_id[col]
-                })
-
-        id_map = dimsresult_service.create_bulk_dimsresults(list_dimsresults, 1000)
+        id_map = dimsresult_service.create_bulk_dimsresults(list_dimsresults, batch_size)
 
         link_list = []
 
-        for meta in meta_list:
+        for temp_key, measuredmz_id, sample_id in meta_list:
             link_list.append({
-                "dimsresults_id": id_map[meta["temp_key"]],
-                "measuredmz_id": meta["measuredmz_id"],
-                "sample_id": meta["sample_id"]
+                "dimsresults_id": id_map[temp_key],
+                "measuredmz_id": measuredmz_id,
+                "sample_id": sample_id
             })
 
         return link_list
 
 
     def _ensure_link_tables(
-            self,
-            measuredmz_dimsrun_link: list[dict],
-            measuredmz_hmdb_ids_link: list[dict],
-            measuredmz_sample_dimsresults_link: list[dict]
+        self,
+        measuredmz_dimsrun_link: list[dict],
+        measuredmz_hmdb_ids_link: list[dict],
+        measuredmz_sample_dimsresults_link: list[dict]
     ) -> None:
         """Create links in junction tables to establish entity relationships.
         
@@ -440,4 +435,5 @@ class IngestionService:
                 })
 
         linktable_service.create_links_in_bulk(DIMSResultsSample, dimsresults_sample_links)
+
         linktable_service.create_links_in_bulk(DIMSResultsMeasuredMZ, dimsresults_measuredmz_links)

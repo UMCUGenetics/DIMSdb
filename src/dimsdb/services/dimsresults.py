@@ -4,6 +4,9 @@ This module provides business logic for performing CRUD operations on
 DIMSResults entities, including bulk operations and linking to samples
 and measured m/z values.
 """
+import time
+from typing import Any
+
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
@@ -61,15 +64,20 @@ class DIMSResultsService:
         except IntegrityError:
             raise ExistsError("DIMSResult already exists")
 
-    def create_bulk_dimsresults(self, dimsresults: list[DIMSResults], batch_size = 1000) -> dict[str, int]:
+    def create_bulk_dimsresults(
+            self,
+            list_dimsresult_dicts: list[dict[str, Any]],
+            batch_size = 5000
+    ) -> dict[str, int]:
         """Create multiple DIMSResults records in bulk.
         
         Creates result records in batch and returns a mapping from temporary keys
         to database IDs for tracking purposes.
         
         Args:
-            dimsresults: A list of DIMSResults objects to be created.
-        
+            list_dimsresult_dicts: A list of dictionaries representing DIMSResults objects to be created.
+            batch_size: The number of records to create in each batch.
+
         Returns:
             A dictionary mapping temporary keys to their corresponding database IDs.
         
@@ -77,20 +85,16 @@ class DIMSResultsService:
             ExistsError: If one or more DIMSResults records with conflicting unique constraints already exist.
         """
         try:
-            list_dimsresult_dicts = [
-                dimsresult.model_dump(exclude_none=True) for dimsresult in dimsresults
-            ]
-            id_map = {}
-
-            for i in range(0, len(list_dimsresult_dicts), batch_size):
-                batch = list_dimsresult_dicts[i:i+batch_size]
-                dimsresults_crud.insert_bulk_dimsresults(self.session, batch)
-
-                batch_temp_keys = [item["temp_key"] for item in batch]
-
-                batch_id_map = dimsresults_crud.select_ids_by_temp_keys(self.session, batch_temp_keys)
-
-                id_map.update(batch_id_map)
+            # list_dimsresult_dicts = [
+            #     dimsresult.model_dump(exclude_none=True) for dimsresult in dimsresults
+            # ]
+            # t0 = time.perf_counter()
+            dimsresults_crud.insert_bulk_dimsresults_in_batches(self.session, list_dimsresult_dicts, batch_size)
+            # print("insert: ", time.perf_counter() - t0)
+            temp_keys = [dimsresult.get("temp_key") for dimsresult in list_dimsresult_dicts]
+            # t1 = time.perf_counter()
+            id_map = dimsresults_crud.select_ids_by_temp_keys_in_batches(self.session, temp_keys, batch_size)
+            # print("select: ", time.perf_counter() - t1)
             return id_map
         except IntegrityError:
             raise ExistsError("One or more DIMSResults already exist")
